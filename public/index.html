@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZUKO XMD – Web Pairing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #13131e;
+      border: 1px solid #2a2a40;
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 0 60px rgba(99, 60, 255, 0.12);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo img {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 2px solid #633cff;
+      object-fit: cover;
+    }
+
+    .logo h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #633cff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-top: 10px;
+    }
+
+    .logo p {
+      color: #888;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: #aaa;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      padding: 13px 16px;
+      background: #0d0d18;
+      border: 1px solid #2a2a40;
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrap input:focus {
+      border-color: #633cff;
+    }
+
+    .hint {
+      font-size: 0.76rem;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #633cff, #a78bfa);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Result box */
+    .result {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .code-box {
+      background: #0d0d18;
+      border: 1px solid #2a2a40;
+      border-radius: 14px;
+      padding: 22px;
+      text-align: center;
+    }
+
+    .code-box .label {
+      font-size: 0.78rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .code-display {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      background: linear-gradient(135deg, #633cff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-family: 'Courier New', monospace;
+      user-select: all;
+    }
+
+    .copy-btn {
+      margin-top: 14px;
+      padding: 9px 22px;
+      width: auto;
+      display: inline-block;
+      font-size: 0.85rem;
+      border-radius: 8px;
+    }
+
+    .instructions {
+      margin-top: 20px;
+      background: #0d1620;
+      border: 1px solid #1a2a3a;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .instructions p {
+      font-size: 0.82rem;
+      color: #8ac;
+      line-height: 1.7;
+    }
+
+    .instructions strong {
+      color: #a78bfa;
+    }
+
+    .instructions ol {
+      padding-left: 18px;
+      margin-top: 8px;
+    }
+
+    .instructions li {
+      font-size: 0.82rem;
+      color: #8ac;
+      line-height: 1.8;
+    }
+
+    /* Error */
+    .error-box {
+      background: #1a0d0d;
+      border: 1px solid #5c1a1a;
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #ff6b6b;
+      font-size: 0.85rem;
+      text-align: center;
+      display: none;
+      margin-top: 16px;
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer-text {
+      margin-top: 28px;
+      font-size: 0.75rem;
+      color: #444;
+      text-align: center;
+    }
+
+    .footer-text a {
+      color: #633cff;
+      text-decoration: none;
+    }
+
+    /* Timer */
+    .timer {
+      font-size: 0.78rem;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    .timer span {
+      color: #a78bfa;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <!-- Replace src with your own bot image URL -->
+    <img src="https://i.ibb.co/hRxLvCWb/RD32333335343832373039383440732e77686174736170702e6e6574-499562.jpg"
+         onerror="this.style.display='none'" alt="Akira MD" />
+    <h1>ZUKO XMD</h1>
+    <p>WhatsApp Bot Web Pairing</p>
+  </div>
+
+  <label for="phone">📱 Your WhatsApp Number</label>
+  <div class="input-wrap">
+    <input type="tel" id="phone" placeholder="e.g. 2347081827038"
+           autocomplete="off" inputmode="numeric" />
+  </div>
+  <p class="hint">Include country code, no + or spaces. Example: 2347081827038</p>
+
+  <button id="pairBtn" onclick="requestPair()">Get Pairing Code</button>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="result" id="resultBox">
+    <div class="code-box">
+      <div class="label">Your Pairing Code</div>
+      <div class="code-display" id="codeDisplay">----</div>
+      <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+      <div class="timer" id="timerBox"></div>
+    </div>
+
+    <div class="instructions">
+      <p><strong>How to use this code in WhatsApp:</strong></p>
+      <ol>
+        <li>Open WhatsApp on your phone</li>
+        <li>Go to <strong>Settings → Linked Devices</strong></li>
+        <li>Tap <strong>"Link a Device"</strong></li>
+        <li>Tap <strong>"Link with phone number instead"</strong></li>
+        <li>Enter the 8-character code shown above</li>
+        <li>Your bot will connect automatically ✅</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<p class="footer-text">Powered by <a href="https://t.me/zuko_xmd" target="_blank">𝕫𝕦𝕜𝕠 ✗𝕞𝕕</a> · ZUKO XMD V1 </p>
+
+<script>
+  let countdownInterval = null;
+
+  async function requestPair() {
+    const phoneInput = document.getElementById('phone');
+    const btn = document.getElementById('pairBtn');
+    const errorBox = document.getElementById('errorBox');
+    const resultBox = document.getElementById('resultBox');
+
+    const phone = phoneInput.value.replace(/[^0-9]/g, '').trim();
+
+    // Reset UI
+    errorBox.style.display = 'none';
+    resultBox.style.display = 'none';
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    if (!phone || phone.length < 7 || phone.length > 15) {
+      showError('Please enter a valid phone number with country code.');
+      return;
+    }
+
+    // Loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Generating...';
+
+    try {
+      const response = await fetch(`/api/pair?phone=${phone}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Server error. Please try again.');
+      }
+
+      if (data.code) {
+        document.getElementById('codeDisplay').textContent = data.code;
+        resultBox.style.display = 'block';
+        startCountdown(120); // 2-minute validity window
+      } else {
+        showError('Could not retrieve pairing code. Try again.');
+      }
+
+    } catch (err) {
+      showError(err.message || 'Network error. Is the server running?');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Get Pairing Code';
+    }
+  }
+
+  function showError(msg) {
+    const errorBox = document.getElementById('errorBox');
+    errorBox.textContent = '⚠️ ' + msg;
+    errorBox.style.display = 'block';
+  }
+
+  function copyCode() {
+    const code = document.getElementById('codeDisplay').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
+    });
+  }
+
+  function startCountdown(seconds) {
+    const timerBox = document.getElementById('timerBox');
+    let remaining = seconds;
+
+    const update = () => {
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      timerBox.innerHTML = `Code expires in <span>${m}:${s.toString().padStart(2, '0')}</span>`;
+      if (remaining <= 0) {
+        clearInterval(countdownInterval);
+        timerBox.innerHTML = '<span style="color:#ff6b6b">⚠️ Code expired. Request a new one.</span>';
+      }
+      remaining--;
+    };
+
+    update();
+    countdownInterval = setInterval(update, 1000);
+  }
+
+  // Allow Enter key to submit
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') requestPair();
+  });
+</script>
+
+</body>
+</html>
