@@ -1,32 +1,14 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "api/pair.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["api/**"]
-      }
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    }
+    { "src": "api/pair.js", "use": "@vercel/node" },
+    { "src": "public/**",   "use": "@vercel/static" }
   ],
   "routes": [
-    {
-      "src": "/api/pair",
-      "dest": "/api/pair.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1"
-    }
+    { "src": "/api/pair", "dest": "/api/pair.js" },
+    { "src": "/(.*)",     "dest": "/public/$1"   }
   ],
   "functions": {
-    "api/pair.js": {
-      "maxDuration": 30,
-      "memory": 512
-    }
+    "api/pair.js": { "maxDuration": 40, "memory": 256 }
   }
 }
