@@ -1,107 +1,125 @@
-/**
- * Akira MD - Web Pairing API
- * Deploy on Vercel as a serverless function.
- * Route: /api/pair?phone=2347XXXXXXXXX
- */
+// api/pair.js - Vercel Serverless Function
+// Handles WhatsApp pairing code generation via Baileys
 
 const {
-  default: makeWASocket,
+  makeWASocket,
   useMultiFileAuthState,
-  fetchLatestBaileysVersion,
-  Browsers,
   DisconnectReason,
-  makeCacheableSignalKeyStore,
+  delay,
 } = require("@whiskeysockets/baileys");
+const { tmpdir } = require("os");
+const { join } = require("path");
+const { rmSync, mkdirSync, existsSync } = require("fs");
 const pino = require("pino");
-const fs = require("fs");
-const path = require("path");
 
-// ── In-memory store for active pairing sessions (lives for this function invocation) ──
-const pendingSessions = new Map();
+// Allow cross-origin requests from the frontend
+const allowCors = (fn) => async (req, res) => {
+  res.setHeader("Access-Control-Allow-Credentials", true);
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+  );
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+  return fn(req, res);
+};
 
-// ── Temp dir for session files (Vercel allows /tmp) ──
-const TMP_DIR = "/tmp/akira-sessions";
-if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
+async function handler(req, res) {
+  // Only allow POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-async function requestCode(phone) {
-  return new Promise(async (resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Timed out waiting for pairing code")), 60000);
+  let phone = req.body?.phone || req.query?.phone;
 
-    try {
-      const sessionPath = path.join(TMP_DIR, phone);
-      if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+  if (!phone) {
+    return res.status(400).json({ error: "Phone number is required" });
+  }
 
-      const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-      const { version } = await fetchLatestBaileysVersion();
+  // Sanitize: remove +, spaces, dashes
+  phone = phone.replace(/[\s\-\+]/g, "").trim();
 
-      const sock = makeWASocket({
-        logger: pino({ level: "silent" }),
-        printQRInTerminal: false,
-        auth: {
-          creds: state.creds,
-          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
-        },
-        version,
-        browser: Browsers.ubuntu("Edge"),
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 25000,
-        markOnlineOnConnect: false,
-      });
+  // Validate: must be digits only, 7-15 chars
+  if (!/^\d{7,15}$/.test(phone)) {
+    return res.status(400).json({ error: "Invalid phone number format. Use digits only with country code (e.g. 2347081827038)" });
+  }
 
-      sock.ev.on("creds.update", saveCreds);
+  // Create a temporary auth directory for this request
+  const sessionDir = join(tmpdir(), `wa_pair_${phone}_${Date.now()}`);
+  mkdirSync(sessionDir, { recursive: true });
 
-      // Request the pairing code once socket opens
-      sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
+  let sock;
+
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
+    // Silent logger
+    const logger = pino({ level: "silent" });
+
+    sock = makeWASocket({
+      auth: state,
+      printQRInTerminal: false,
+      logger,
+      browser: ["Akira MD", "Chrome", "4.0.0"],
+      connectTimeoutMs: 20000,
+      defaultQueryTimeoutMs: 20000,
+    });
+
+    // Wait for connection open
+    const code = await new Promise(async (resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Connection timeout. Please try again."));
+      }, 25000);
+
+      sock.ev.on("connection.update", async (update) => {
+        const { connection, lastDisconnect } = update;
+
         if (connection === "open") {
           clearTimeout(timeout);
-          sock.end();
-          resolve({ success: true, message: "Already authenticated" });
+          try {
+            await delay(1500);
+            const pairingCode = await sock.requestPairingCode(phone);
+            // Format: XXXX-XXXX
+            const formatted = pairingCode?.match(/.{1,4}/g)?.join("-") || pairingCode;
+            resolve(formatted);
+          } catch (err) {
+            reject(new Error("Failed to request pairing code: " + err.message));
+          }
         }
 
         if (connection === "close") {
+          clearTimeout(timeout);
           const reason = lastDisconnect?.error?.output?.statusCode;
           if (reason === DisconnectReason.loggedOut) {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
+            reject(new Error("Session logged out. Please try again."));
+          } else {
+            reject(new Error("Connection closed unexpectedly. Please retry."));
           }
         }
       });
+    });
 
-      // Give socket 2 s to initialise, then ask for code
-      await new Promise((r) => setTimeout(r, 2000));
+    // Close socket
+    sock.end();
 
-      if (!state.creds.registered) {
-        const cleanPhone = phone.replace(/[^0-9]/g, "");
-        let code = await sock.requestPairingCode(cleanPhone);
-        code = code?.match(/.{1,4}/g)?.join("-") || code;
-        clearTimeout(timeout);
-        sock.end();
-        resolve({ success: true, code, phone: cleanPhone });
-      }
-    } catch (err) {
-      clearTimeout(timeout);
-      reject(err);
-    }
-  });
+    // Cleanup temp session
+    try { rmSync(sessionDir, { recursive: true, force: true }); } catch (_) {}
+
+    return res.status(200).json({ success: true, code });
+
+  } catch (err) {
+    // Close socket if open
+    try { sock?.end?.(); } catch (_) {}
+    // Cleanup temp session
+    try { rmSync(sessionDir, { recursive: true, force: true }); } catch (_) {}
+
+    console.error("Pairing error:", err.message);
+    return res.status(500).json({ error: err.message || "Failed to generate pairing code. Make sure your server is running." });
+  }
 }
 
-// ── Vercel serverless handler ──
-module.exports = async (req, res) => {
-  // CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  if (req.method === "OPTIONS") return res.status(200).end();
-
-  const phone = (req.query.phone || "").replace(/[^0-9]/g, "");
-
-  if (!phone || phone.length < 7 || phone.length > 15) {
-    return res.status(400).json({ success: false, error: "Provide a valid phone number (with country code, digits only)" });
-  }
-
-  try {
-    const result = await requestCode(phone);
-    return res.status(200).json(result);
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message || "Failed to generate pairing code" });
-  }
-};
+module.exports = allowCors(handler);
