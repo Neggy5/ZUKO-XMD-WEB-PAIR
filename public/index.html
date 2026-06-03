@@ -4,366 +4,664 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ZUKO XMD – Web Pairing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+
   <style>
+    :root {
+      --bg:        #050509;
+      --surface:   #0c0c14;
+      --border:    #1c1c2e;
+      --accent:    #00e5ff;
+      --accent2:   #7c3aed;
+      --green:     #00ff88;
+      --red:       #ff3b5c;
+      --text:      #e2e8f0;
+      --muted:     #4a5568;
+      --glow:      0 0 40px rgba(0,229,255,.15);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html { scroll-behavior: smooth; }
+
     body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
       min-height: 100vh;
-      background: #0a0a0f;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', system-ui, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px 16px;
+      overflow-x: hidden;
     }
 
-    .card {
-      background: #13131e;
-      border: 1px solid #2a2a40;
-      border-radius: 20px;
-      padding: 40px 36px;
-      width: 100%;
-      max-width: 440px;
-      box-shadow: 0 0 60px rgba(99, 60, 255, 0.12);
+    /* ── Animated grid background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      z-index: 0;
+      pointer-events: none;
     }
 
-    .logo {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    .logo img {
-      width: 72px;
-      height: 72px;
+    /* ── Glowing orbs ── */
+    .orb {
+      position: fixed;
       border-radius: 50%;
-      border: 2px solid #633cff;
-      object-fit: cover;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 380px; height: 380px; background: rgba(0,229,255,.07); top: -100px; left: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: rgba(124,58,237,.08); bottom: -80px; right: -80px; animation-delay: -6s; }
+
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(30px, 20px) scale(1.06); }
     }
 
-    .logo h1 {
-      font-size: 1.7rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #633cff, #a78bfa);
+    /* ── Card ── */
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 460px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px 36px 36px;
+      box-shadow: var(--glow), 0 24px 60px rgba(0,0,0,.5);
+      animation: fadeUp .5s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      object-fit: cover;
+      box-shadow: 0 0 20px rgba(0,229,255,.3);
+      flex-shrink: 0;
+    }
+
+    .header-text h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, var(--accent), #ffffff 60%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-top: 10px;
+      line-height: 1.1;
     }
 
-    .logo p {
-      color: #888;
-      font-size: 0.85rem;
+    .header-text p {
+      color: var(--muted);
+      font-size: .8rem;
       margin-top: 4px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
     }
 
-    label {
-      display: block;
-      font-size: 0.82rem;
-      color: #aaa;
+    /* Status badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,255,136,.08);
+      border: 1px solid rgba(0,255,136,.2);
+      border-radius: 100px;
+      padding: 4px 10px;
+      font-size: .72rem;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 24px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .4; transform: scale(.8); }
+    }
+
+    /* ── Form ── */
+    .field-label {
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
       margin-bottom: 8px;
-      letter-spacing: 0.04em;
+      display: block;
     }
 
-    .input-wrap {
-      position: relative;
+    .input-row {
+      display: flex;
+      gap: 10px;
     }
 
-    .input-wrap input {
-      width: 100%;
-      padding: 13px 16px;
-      background: #0d0d18;
-      border: 1px solid #2a2a40;
+    .country-select {
+      width: 88px;
+      flex-shrink: 0;
+      padding: 0 10px;
+      background: #111120;
+      border: 1px solid var(--border);
       border-radius: 12px;
-      color: #e0e0e0;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .9rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .2s;
+      appearance: none;
+      text-align: center;
+    }
+
+    .country-select:focus { border-color: var(--accent); }
+
+    input[type="tel"] {
+      flex: 1;
+      padding: 14px 16px;
+      background: #111120;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 1rem;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color .2s, box-shadow .2s;
     }
 
-    .input-wrap input:focus {
-      border-color: #633cff;
+    input[type="tel"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,229,255,.1);
     }
+
+    input[type="tel"]::placeholder { color: #2d3748; }
 
     .hint {
-      font-size: 0.76rem;
-      color: #555;
-      margin-top: 6px;
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 8px;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    button {
+    /* ── Button ── */
+    .btn {
       width: 100%;
       margin-top: 20px;
-      padding: 14px;
+      padding: 15px;
       border: none;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #633cff, #a78bfa);
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-
-    button:hover { opacity: 0.9; }
-    button:active { transform: scale(0.98); }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    /* Result box */
-    .result {
-      margin-top: 24px;
-      display: none;
-    }
-
-    .code-box {
-      background: #0d0d18;
-      border: 1px solid #2a2a40;
       border-radius: 14px;
-      padding: 22px;
-      text-align: center;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      position: relative;
+      overflow: hidden;
     }
 
-    .code-box .label {
-      font-size: 0.78rem;
-      color: #888;
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.12), transparent);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .btn:hover::after { opacity: 1; }
+    .btn:hover { box-shadow: 0 8px 30px rgba(0,229,255,.25); }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: .72rem;
+      letter-spacing: .08em;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 14px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
     }
 
-    .code-display {
-      font-size: 2.4rem;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      background: linear-gradient(135deg, #633cff, #a78bfa);
+    /* ── Result ── */
+    .result { display: none; margin-top: 24px; }
+
+    .code-card {
+      background: #080812;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .code-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+    }
+
+    .code-label {
+      font-size: .72rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .code-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: .18em;
+      background: linear-gradient(135deg, var(--accent), #ffffff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      font-family: 'Courier New', monospace;
       user-select: all;
+      cursor: text;
     }
 
-    .copy-btn {
+    .code-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn-copy, .btn-new {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      border: none;
+    }
+
+    .btn-copy {
+      background: rgba(0,229,255,.1);
+      border: 1px solid rgba(0,229,255,.2);
+      color: var(--accent);
+    }
+    .btn-copy:hover { background: rgba(0,229,255,.18); }
+
+    .btn-new {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-new:hover { color: var(--text); border-color: #2d3748; }
+
+    .timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem;
+      color: var(--muted);
       margin-top: 14px;
-      padding: 9px 22px;
-      width: auto;
-      display: inline-block;
-      font-size: 0.85rem;
-      border-radius: 8px;
     }
 
-    .instructions {
+    .timer .t { color: var(--accent); font-weight: 600; }
+
+    /* ── Steps ── */
+    .steps {
       margin-top: 20px;
-      background: #0d1620;
-      border: 1px solid #1a2a3a;
-      border-radius: 12px;
-      padding: 16px;
+      background: rgba(0,229,255,.03);
+      border: 1px solid rgba(0,229,255,.08);
+      border-radius: 14px;
+      padding: 18px;
     }
 
-    .instructions p {
-      font-size: 0.82rem;
-      color: #8ac;
-      line-height: 1.7;
+    .steps-title {
+      font-size: .72rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    .instructions strong {
-      color: #a78bfa;
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
     }
 
-    .instructions ol {
-      padding-left: 18px;
-      margin-top: 8px;
+    .step:last-child { margin-bottom: 0; }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0,229,255,.1);
+      border: 1px solid rgba(0,229,255,.2);
+      color: var(--accent);
+      font-size: .7rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
     }
 
-    .instructions li {
-      font-size: 0.82rem;
-      color: #8ac;
-      line-height: 1.8;
+    .step p {
+      font-size: .8rem;
+      color: #94a3b8;
+      line-height: 1.5;
     }
 
-    /* Error */
-    .error-box {
-      background: #1a0d0d;
-      border: 1px solid #5c1a1a;
-      border-radius: 12px;
-      padding: 14px 16px;
-      color: #ff6b6b;
-      font-size: 0.85rem;
-      text-align: center;
+    .step p strong { color: var(--text); }
+
+    /* ── Error ── */
+    .error {
       display: none;
-      margin-top: 16px;
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: rgba(255,59,92,.08);
+      border: 1px solid rgba(255,59,92,.2);
+      border-radius: 12px;
+      color: var(--red);
+      font-size: .82rem;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Spinner */
-    .spinner {
+    /* ── Spinner ── */
+    .spin {
       display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.2);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      animation: spin .6s linear infinite;
       vertical-align: middle;
       margin-right: 8px;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .footer-text {
-      margin-top: 28px;
-      font-size: 0.75rem;
-      color: #444;
+    /* ── Footer ── */
+    .footer {
+      margin-top: 24px;
       text-align: center;
+      font-size: .72rem;
+      color: var(--muted);
+      z-index: 1;
+      position: relative;
     }
 
-    .footer-text a {
-      color: #633cff;
-      text-decoration: none;
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ── Copied toast ── */
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .85rem;
+      padding: 10px 24px;
+      border-radius: 100px;
+      z-index: 999;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+      pointer-events: none;
     }
 
-    /* Timer */
-    .timer {
-      font-size: 0.78rem;
-      color: #888;
-      margin-top: 8px;
-    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
 
-    .timer span {
-      color: #a78bfa;
-      font-weight: 600;
+    @media (max-width: 480px) {
+      .card { padding: 28px 20px 24px; }
+      .code-value { font-size: 2rem; letter-spacing: .14em; }
     }
   </style>
 </head>
 <body>
 
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
 <div class="card">
-  <div class="logo">
-    <!-- Replace src with your own bot image URL -->
-    <img src="https://i.ibb.co/hRxLvCWb/RD32333335343832373039383440732e77686174736170702e6e6574-499562.jpg"
-         onerror="this.style.display='none'" alt="Akira MD" />
-    <h1>ZUKO XMD</h1>
-    <p>WhatsApp Bot Web Pairing</p>
+
+  <div class="header">
+    <img class="avatar"
+      src="https://i.ibb.co/hRxLvCWb/RD32333335343832373039383440732e77686174736170702e6e6574-499562.jpg"
+      onerror="this.style.display='none'" alt="ZUKO XMD" />
+    <div class="header-text">
+      <h1>𝕫𝕦𝕜𝕠 ✗𝕞𝕕</h1>
+      <p>WhatsApp Bot · Web Pairing</p>
+    </div>
   </div>
 
-  <label for="phone">📱 Your WhatsApp Number</label>
-  <div class="input-wrap">
-    <input type="tel" id="phone" placeholder="e.g. 2347081827038"
-           autocomplete="off" inputmode="numeric" />
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Server Online
   </div>
-  <p class="hint">Include country code, no + or spaces. Example: 2347081827038</p>
 
-  <button id="pairBtn" onclick="requestPair()">Get Pairing Code</button>
+  <label class="field-label" for="phone">Phone Number</label>
+  <div class="input-row">
+    <select class="country-select" id="countryCode" title="Country code">
+      <option value="234">🇳🇬 +234</option>
+      <option value="27">🇿🇦 +27</option>
+      <option value="254">🇰🇪 +254</option>
+      <option value="233">🇬🇭 +233</option>
+      <option value="255">🇹🇿 +255</option>
+      <option value="256">🇺🇬 +256</option>
+      <option value="263">🇿🇼 +263</option>
+      <option value="260">🇿🇲 +260</option>
+      <option value="251">🇪🇹 +251</option>
+      <option value="225">🇨🇮 +225</option>
+      <option value="237">🇨🇲 +237</option>
+      <option value="1">🇺🇸 +1</option>
+      <option value="44">🇬🇧 +44</option>
+      <option value="91">🇮🇳 +91</option>
+      <option value="62">🇮🇩 +62</option>
+      <option value="55">🇧🇷 +55</option>
+      <option value="49">🇩🇪 +49</option>
+      <option value="33">🇫🇷 +33</option>
+      <option value="966">🇸🇦 +966</option>
+      <option value="971">🇦🇪 +971</option>
+    </select>
+    <input type="tel" id="phone" placeholder="7081827038" inputmode="numeric" autocomplete="off" />
+  </div>
+  <p class="hint">Enter number without leading 0 or country code</p>
 
-  <div class="error-box" id="errorBox"></div>
+  <button class="btn" id="pairBtn" onclick="requestPair()">
+    ⚡ Generate Pairing Code
+  </button>
+
+  <div class="error" id="errorBox"></div>
 
   <div class="result" id="resultBox">
-    <div class="code-box">
-      <div class="label">Your Pairing Code</div>
-      <div class="code-display" id="codeDisplay">----</div>
-      <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+    <div class="divider">Pairing Code</div>
+
+    <div class="code-card">
+      <div class="code-label">Enter this in WhatsApp</div>
+      <div class="code-value" id="codeDisplay">– – – –</div>
+      <div class="code-actions">
+        <button class="btn-copy" onclick="copyCode()">📋 Copy Code</button>
+        <button class="btn-new" onclick="resetForm()">↩ New Request</button>
+      </div>
       <div class="timer" id="timerBox"></div>
     </div>
 
-    <div class="instructions">
-      <p><strong>How to use this code in WhatsApp:</strong></p>
-      <ol>
-        <li>Open WhatsApp on your phone</li>
-        <li>Go to <strong>Settings → Linked Devices</strong></li>
-        <li>Tap <strong>"Link a Device"</strong></li>
-        <li>Tap <strong>"Link with phone number instead"</strong></li>
-        <li>Enter the 8-character code shown above</li>
-        <li>Your bot will connect automatically ✅</li>
-      </ol>
+    <div class="steps">
+      <div class="steps-title">How to link ↓</div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <p>Open <strong>WhatsApp</strong> on your phone</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <p>Go to <strong>Settings → Linked Devices → Link a Device</strong></p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <p>Tap <strong>"Link with phone number instead"</strong></p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <p>Enter the <strong>8-character code</strong> above and tap Next ✅</p>
+      </div>
     </div>
   </div>
+
 </div>
 
-<p class="footer-text">Powered by <a href="https://t.me/zuko_xmd" target="_blank">𝕫𝕦𝕜𝕠 ✗𝕞𝕕</a> · ZUKO XMD V1 </p>
+<p class="footer">
+  Powered by <a href="https://t.me/zuko_xmd" target="_blank">𝕫𝕦𝕜𝕠 ✗𝕞𝕕</a> &nbsp;·&nbsp;
+  Akira MD v4 &nbsp;·&nbsp;
+  <a href="https://t.me/ZUKO_XMD" target="_blank">Support</a>
+</p>
+
+<div class="toast" id="toast">✓ Copied to clipboard</div>
 
 <script>
-  let countdownInterval = null;
+  // ── CONFIG ──────────────────────────────────────────────────────────────
+  // Replace with your Pterodactyl server's public IP and allocated port
+  // e.g. "http://panel.bwmxmd.co.ke:27232" or "http://YOUR_IP:PORT"
+  const API_BASE = 'http://panel.bwmxmd.co.ke:27232';
+  // ────────────────────────────────────────────────────────────────────────
+
+  let countdown = null;
 
   async function requestPair() {
-    const phoneInput = document.getElementById('phone');
-    const btn = document.getElementById('pairBtn');
-    const errorBox = document.getElementById('errorBox');
+    const cc   = document.getElementById('countryCode').value;
+    const num  = document.getElementById('phone').value.replace(/[^0-9]/g, '').replace(/^0+/, '');
+    const full = cc + num;
+
+    const btn      = document.getElementById('pairBtn');
+    const errBox   = document.getElementById('errorBox');
     const resultBox = document.getElementById('resultBox');
 
-    const phone = phoneInput.value.replace(/[^0-9]/g, '').trim();
-
-    // Reset UI
-    errorBox.style.display = 'none';
+    errBox.style.display = 'none';
     resultBox.style.display = 'none';
-    if (countdownInterval) clearInterval(countdownInterval);
+    clearInterval(countdown);
 
-    if (!phone || phone.length < 7 || phone.length > 15) {
-      showError('Please enter a valid phone number with country code.');
+    if (!num || full.length < 8 || full.length > 15) {
+      showError('Please enter a valid phone number.');
       return;
     }
 
-    // Loading state
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Generating...';
+    btn.innerHTML = '<span class="spin"></span> Connecting to WhatsApp...';
 
     try {
-      const response = await fetch(`/api/pair?phone=${phone}`);
-      const data = await response.json();
+      const res  = await fetch(`${API_BASE}/pair?phone=${full}`);
+      const text = await res.text();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Server error. Please try again.');
-      }
+      let data;
+      try { data = JSON.parse(text); }
+      catch { throw new Error('Server returned an unexpected response. Check your API_BASE URL.'); }
 
-      if (data.code) {
-        document.getElementById('codeDisplay').textContent = data.code;
-        resultBox.style.display = 'block';
-        startCountdown(120); // 2-minute validity window
-      } else {
-        showError('Could not retrieve pairing code. Try again.');
-      }
+      if (!data.success) throw new Error(data.error || 'Failed to get pairing code.');
+
+      document.getElementById('codeDisplay').textContent = data.code;
+      resultBox.style.display = 'block';
+      resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      startTimer(120);
 
     } catch (err) {
-      showError(err.message || 'Network error. Is the server running?');
+      showError(err.message);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = 'Get Pairing Code';
+      btn.innerHTML = '⚡ Generate Pairing Code';
     }
   }
 
   function showError(msg) {
-    const errorBox = document.getElementById('errorBox');
-    errorBox.textContent = '⚠️ ' + msg;
-    errorBox.style.display = 'block';
+    const b = document.getElementById('errorBox');
+    b.textContent = '⚠ ' + msg;
+    b.style.display = 'block';
   }
 
   function copyCode() {
     const code = document.getElementById('codeDisplay').textContent;
-    navigator.clipboard.writeText(code).then(() => {
-      const btn = document.querySelector('.copy-btn');
-      btn.textContent = '✅ Copied!';
-      setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
-    });
+    navigator.clipboard.writeText(code).then(() => showToast());
   }
 
-  function startCountdown(seconds) {
-    const timerBox = document.getElementById('timerBox');
-    let remaining = seconds;
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
 
-    const update = () => {
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
-      timerBox.innerHTML = `Code expires in <span>${m}:${s.toString().padStart(2, '0')}</span>`;
-      if (remaining <= 0) {
-        clearInterval(countdownInterval);
-        timerBox.innerHTML = '<span style="color:#ff6b6b">⚠️ Code expired. Request a new one.</span>';
+  function resetForm() {
+    clearInterval(countdown);
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('errorBox').style.display  = 'none';
+    document.getElementById('phone').value = '';
+    document.getElementById('phone').focus();
+  }
+
+  function startTimer(secs) {
+    const box = document.getElementById('timerBox');
+    let rem = secs;
+
+    const tick = () => {
+      const m = Math.floor(rem / 60);
+      const s = rem % 60;
+      box.innerHTML = `Expires in <span class="t">${m}:${s.toString().padStart(2,'0')}</span>`;
+      if (rem <= 0) {
+        clearInterval(countdown);
+        box.innerHTML = '<span style="color:var(--red)">⚠ Code expired — generate a new one</span>';
       }
-      remaining--;
+      rem--;
     };
 
-    update();
-    countdownInterval = setInterval(update, 1000);
+    tick();
+    countdown = setInterval(tick, 1000);
   }
 
-  // Allow Enter key to submit
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', e => {
     if (e.key === 'Enter') requestPair();
   });
 </script>
