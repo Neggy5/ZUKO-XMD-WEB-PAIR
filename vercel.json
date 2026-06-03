@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "api/pair.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["api/**"]
+      }
     },
     {
       "src": "public/**",
@@ -19,5 +22,11 @@
       "src": "/(.*)",
       "dest": "/public/$1"
     }
-  ]
+  ],
+  "functions": {
+    "api/pair.js": {
+      "maxDuration": 30,
+      "memory": 512
+    }
+  }
 }
