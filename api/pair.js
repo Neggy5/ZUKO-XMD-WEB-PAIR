@@ -1,124 +1,87 @@
-// api/pair.js - Vercel Serverless Function
-// Handles WhatsApp pairing code generation via Baileys
+// api/pair.js  –  Vercel Serverless Function
+// Proxies pairing requests to your bot server running pair-server.js
+//
+// Set this environment variable in your Vercel project settings:
+//   BOT_SERVER_URL  =  http://YOUR_PUBLIC_IP_OR_DOMAIN:3000
+//   PAIR_SECRET     =  (optional, must match pair-server.js)
 
-const {
-  makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason,
-  delay,
-} = require("@whiskeysockets/baileys");
-const { tmpdir } = require("os");
-const { join } = require("path");
-const { rmSync, mkdirSync, existsSync } = require("fs");
-const pino = require("pino");
-
-// Allow cross-origin requests from the frontend
 const allowCors = (fn) => async (req, res) => {
-  res.setHeader("Access-Control-Allow-Credentials", true);
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
-  );
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   return fn(req, res);
 };
 
 async function handler(req, res) {
-  // Only allow POST
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let phone = req.body?.phone || req.query?.phone;
+  // ── Validate input ──────────────────────────────────────────
+  let phone = (req.body?.phone || '').toString().replace(/[\s\-\+]/g, '').trim();
 
-  if (!phone) {
-    return res.status(400).json({ error: "Phone number is required" });
+  if (!phone || !/^\d{7,15}$/.test(phone)) {
+    return res.status(400).json({
+      error: 'Invalid phone number. Use full number with country code, no + (e.g. 2347081827038)'
+    });
   }
 
-  // Sanitize: remove +, spaces, dashes
-  phone = phone.replace(/[\s\-\+]/g, "").trim();
+  // ── Build target URL ────────────────────────────────────────
+  const botUrl = process.env.BOT_SERVER_URL?.replace(/\/$/, '');
 
-  // Validate: must be digits only, 7-15 chars
-  if (!/^\d{7,15}$/.test(phone)) {
-    return res.status(400).json({ error: "Invalid phone number format. Use digits only with country code (e.g. 2347081827038)" });
+  if (!botUrl) {
+    return res.status(500).json({
+      error: 'BOT_SERVER_URL is not configured. Set it in your Vercel environment variables.'
+    });
   }
 
-  // Create a temporary auth directory for this request
-  const sessionDir = join(tmpdir(), `wa_pair_${phone}_${Date.now()}`);
-  mkdirSync(sessionDir, { recursive: true });
+  const secret = process.env.PAIR_SECRET || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (secret) headers['Authorization'] = `Bearer ${secret}`;
 
-  let sock;
-
+  // ── Proxy to bot server ─────────────────────────────────────
   try {
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), 35000);
 
-    // Silent logger
-    const logger = pino({ level: "silent" });
-
-    sock = makeWASocket({
-      auth: state,
-      printQRInTerminal: false,
-      logger,
-      browser: ["Akira MD", "Chrome", "4.0.0"],
-      connectTimeoutMs: 20000,
-      defaultQueryTimeoutMs: 20000,
+    const upstream = await fetch(`${botUrl}/pair`, {
+      method:  'POST',
+      headers,
+      body:    JSON.stringify({ phone }),
+      signal:  controller.signal,
     });
 
-    // Wait for connection open
-    const code = await new Promise(async (resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("Connection timeout. Please try again."));
-      }, 25000);
+    clearTimeout(timeout);
 
-      sock.ev.on("connection.update", async (update) => {
-        const { connection, lastDisconnect } = update;
+    const contentType = upstream.headers.get('content-type') || '';
 
-        if (connection === "open") {
-          clearTimeout(timeout);
-          try {
-            await delay(1500);
-            const pairingCode = await sock.requestPairingCode(phone);
-            // Format: XXXX-XXXX
-            const formatted = pairingCode?.match(/.{1,4}/g)?.join("-") || pairingCode;
-            resolve(formatted);
-          } catch (err) {
-            reject(new Error("Failed to request pairing code: " + err.message));
-          }
-        }
-
-        if (connection === "close") {
-          clearTimeout(timeout);
-          const reason = lastDisconnect?.error?.output?.statusCode;
-          if (reason === DisconnectReason.loggedOut) {
-            reject(new Error("Session logged out. Please try again."));
-          } else {
-            reject(new Error("Connection closed unexpectedly. Please retry."));
-          }
-        }
+    if (!contentType.includes('application/json')) {
+      const text = await upstream.text();
+      console.error('[pair proxy] Non-JSON response:', text.slice(0, 200));
+      return res.status(502).json({
+        error: 'Bot server returned an unexpected response. Make sure pair-server.js is running on your XMD panel.'
       });
-    });
+    }
 
-    // Close socket
-    sock.end();
+    const data = await upstream.json();
 
-    // Cleanup temp session
-    try { rmSync(sessionDir, { recursive: true, force: true }); } catch (_) {}
+    if (!upstream.ok || !data.success) {
+      return res.status(upstream.status).json({ error: data.error || 'Failed to generate pairing code.' });
+    }
 
-    return res.status(200).json({ success: true, code });
+    return res.status(200).json({ success: true, code: data.code });
 
   } catch (err) {
-    // Close socket if open
-    try { sock?.end?.(); } catch (_) {}
-    // Cleanup temp session
-    try { rmSync(sessionDir, { recursive: true, force: true }); } catch (_) {}
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: 'Request to bot server timed out. Make sure pair-server.js is running.' });
+    }
 
-    console.error("Pairing error:", err.message);
-    return res.status(500).json({ error: err.message || "Failed to generate pairing code. Make sure your server is running." });
+    console.error('[pair proxy] Fetch error:', err.message);
+    return res.status(502).json({
+      error: `Could not reach bot server: ${err.message}. Make sure pair-server.js is running on your XMD panel.`
+    });
   }
 }
 
