@@ -1,88 +1,174 @@
-// api/pair.js  –  Vercel Serverless Function
-// Proxies pairing requests to your bot server running pair-server.js
-//
-// Set this environment variable in your Vercel project settings:
-//   BOT_SERVER_URL  =  http://YOUR_PUBLIC_IP_OR_DOMAIN:3000
-//   PAIR_SECRET     =  (optional, must match pair-server.js)
+ const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { Boom } = require('@hapi/boom');
+const fs = require('fs');
+const path = require('path');
 
-const allowCors = (fn) => async (req, res) => {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
-  return fn(req, res);
+// Store active sessions
+const activeSessions = new Map();
+
+module.exports = async (req, res) => {
+    // Enable CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+    
+    const { number } = req.body;
+    
+    if (!number) {
+        return res.status(400).json({ error: 'Phone number is required' });
+    }
+    
+    // Clean phone number
+    let cleanNumber = number.replace(/[^0-9]/g, '');
+    if (cleanNumber.startsWith('0')) {
+        cleanNumber = '234' + cleanNumber.substring(1);
+    }
+    if (!cleanNumber.startsWith('234')) {
+        cleanNumber = '234' + cleanNumber;
+    }
+    
+    const fullJid = cleanNumber + '@s.whatsapp.net';
+    
+    // Check existing session
+    if (activeSessions.has(fullJid)) {
+        const session = activeSessions.get(fullJid);
+        if (Date.now() - session.timestamp < 5 * 60 * 1000) {
+            return res.json({
+                success: true,
+                code: session.code,
+                number: cleanNumber,
+                expiresIn: Math.floor((5 * 60 - (Date.now() - session.timestamp) / 1000)),
+                message: 'Pairing code already generated'
+            });
+        } else {
+            activeSessions.delete(fullJid);
+        }
+    }
+    
+    try {
+        // Create temp directory
+        const tempDir = '/tmp/pairing_' + cleanNumber;
+        if (fs.existsSync(tempDir)) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+        fs.mkdirSync(tempDir, { recursive: true });
+        
+        const { version } = await fetchLatestBaileysVersion();
+        const { state, saveCreds } = await useMultiFileAuthState(tempDir);
+        
+        let pairingCode = null;
+        
+        const sock = makeWASocket({
+            version,
+            auth: state,
+            logger: { level: 'silent' },
+            browser: Browsers.macOS('Desktop'),
+            markOnlineOnConnect: false,
+            generateHighQualityLinkPreview: false,
+            shouldSyncHistoryMessage: () => false,
+        });
+        
+        // Handle connection updates
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect } = update;
+            
+            if (connection === 'open') {
+                console.log('Connected for:', cleanNumber);
+                await sock.sendPresenceUpdate('available');
+                
+                // Update bio
+                const now = new Date();
+                const bio = `⚡ ZUKO XMD | Paired at ${now.toLocaleTimeString()}`;
+                await sock.updateProfileStatus(bio).catch(() => {});
+                
+                // Store session
+                activeSessions.set(fullJid, {
+                    sock,
+                    code: pairingCode,
+                    timestamp: Date.now(),
+                    number: cleanNumber
+                });
+                
+                // Clean up temp dir after 30 seconds
+                setTimeout(() => {
+                    try {
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        }
+                    } catch (e) {}
+                }, 30000);
+            }
+            
+            if (connection === 'close') {
+                const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
+                console.log('Connection closed:', cleanNumber, statusCode);
+                
+                // Clean up
+                try {
+                    if (fs.existsSync(tempDir)) {
+                        fs.rmSync(tempDir, { recursive: true, force: true });
+                    }
+                } catch (e) {}
+                activeSessions.delete(fullJid);
+            }
+        });
+        
+        sock.ev.on('creds.update', saveCreds);
+        
+        // Request pairing code
+        console.log('Requesting code for:', cleanNumber);
+        pairingCode = await sock.requestPairingCode(cleanNumber);
+        pairingCode = pairingCode.match(/.{1,4}/g)?.join('-') || pairingCode;
+        console.log('Code generated:', pairingCode);
+        
+        // Store session with code
+        activeSessions.set(fullJid, {
+            sock,
+            code: pairingCode,
+            timestamp: Date.now(),
+            number: cleanNumber
+        });
+        
+        // Auto cleanup after 5 minutes
+        setTimeout(() => {
+            if (activeSessions.has(fullJid)) {
+                const session = activeSessions.get(fullJid);
+                if (session && session.sock) {
+                    try {
+                        session.sock.logout();
+                    } catch (e) {}
+                }
+                activeSessions.delete(fullJid);
+                try {
+                    if (fs.existsSync(tempDir)) {
+                        fs.rmSync(tempDir, { recursive: true, force: true });
+                    }
+                } catch (e) {}
+            }
+        }, 5 * 60 * 1000);
+        
+        return res.json({
+            success: true,
+            code: pairingCode,
+            number: cleanNumber,
+            expiresIn: 300,
+            message: 'Pairing code generated successfully!'
+        });
+        
+    } catch (error) {
+        console.error('Pairing error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+            suggestion: 'Make sure the number is registered on WhatsApp'
+        });
+    }
 };
-
-async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // ── Validate input ──────────────────────────────────────────
-  let phone = (req.body?.phone || '').toString().replace(/[\s\-\+]/g, '').trim();
-
-  if (!phone || !/^\d{7,15}$/.test(phone)) {
-    return res.status(400).json({
-      error: 'Invalid phone number. Use full number with country code, no + (e.g. 2347081827038)'
-    });
-  }
-
-  // ── Build target URL ────────────────────────────────────────
-  const botUrl = process.env.BOT_SERVER_URL?.replace(/\/$/, '');
-
-  if (!botUrl) {
-    return res.status(500).json({
-      error: 'BOT_SERVER_URL is not configured. Set it in your Vercel environment variables.'
-    });
-  }
-
-  const secret = process.env.PAIR_SECRET || '';
-  const headers = { 'Content-Type': 'application/json' };
-  if (secret) headers['Authorization'] = `Bearer ${secret}`;
-
-  // ── Proxy to bot server ─────────────────────────────────────
-  try {
-    const controller = new AbortController();
-    const timeout    = setTimeout(() => controller.abort(), 35000);
-
-    const upstream = await fetch(`${botUrl}/pair`, {
-      method:  'POST',
-      headers,
-      body:    JSON.stringify({ phone }),
-      signal:  controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    const contentType = upstream.headers.get('content-type') || '';
-
-    if (!contentType.includes('application/json')) {
-      const text = await upstream.text();
-      console.error('[pair proxy] Non-JSON response:', text.slice(0, 200));
-      return res.status(502).json({
-        error: 'Bot server returned an unexpected response. Make sure pair-server.js is running on your XMD panel.'
-      });
-    }
-
-    const data = await upstream.json();
-
-    if (!upstream.ok || !data.success) {
-      return res.status(upstream.status).json({ error: data.error || 'Failed to generate pairing code.' });
-    }
-
-    return res.status(200).json({ success: true, code: data.code });
-
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: 'Request to bot server timed out. Make sure pair-server.js is running.' });
-    }
-
-    console.error('[pair proxy] Fetch error:', err.message);
-    return res.status(502).json({
-      error: `Could not reach bot server: ${err.message}. Make sure pair-server.js is running on your XMD panel.`
-    });
-  }
-}
-
-module.exports = allowCors(handler);
