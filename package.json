@@ -1,7 +1,17 @@
 {
-  "name": "akira-md-web-pair",
-  "version": "2.0.0",
-  "description": "Akira MD WhatsApp Bot Web Pairing – Vercel frontend + proxy",
-  "engines": { "node": ">=18" },
-  "dependencies": {}
+  "name": "zuko-xmd-web-pair",
+  "version": "1.0.0",
+  "description": "Web Pairing for ZUKO XMD WhatsApp Bot",
+  "main": "api/pair.js",
+  "scripts": {
+    "start": "node api/pair.js",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.5",
+    "@hapi/boom": "^10.0.1"
+  },
+  "engines": {
+    "node": "18.x"
+  }
 }
