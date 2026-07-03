@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZUKO XMD — Web Pair</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #06070b;
+    --surface: #0d0f17;
+    --surface-2: #12151f;
+    --hairline: #1c2130;
+    --blue: #2fd0ff;
+    --blue-soft: #1a8bb8;
+    --blue-dim: #0d3a4d;
+    --cream: #f2e8d0;
+    --grey: #7c8798;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Manrope', sans-serif;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* faint circuit-grid backdrop */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(47,208,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(47,208,255,0.05) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 30%, black 0%, transparent 75%);
+    pointer-events: none;
+  }
+
+  .stage {
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---------- Signal badge ---------- */
+  .badge-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 4px;
+  }
+  .badge-ring {
+    position: relative;
+    width: 128px;
+    height: 128px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .badge-ring::before,
+  .badge-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid var(--blue-soft);
+    opacity: 0;
+    animation: ping 2.8s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+  }
+  .badge-ring::after { animation-delay: 1.4s; }
+  @keyframes ping {
+    0%   { transform: scale(0.85); opacity: 0.55; }
+    80%  { transform: scale(1.65); opacity: 0; }
+    100% { transform: scale(1.65); opacity: 0; }
+  }
+  .badge-img {
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--blue);
+    box-shadow: 0 0 22px rgba(47,208,255,0.45), 0 0 60px rgba(47,208,255,0.12);
+    position: relative;
+    z-index: 1;
+    background: #000;
+  }
+
+  /* ---------- signal line linking badge to readout ---------- */
+  .link-line {
+    width: 1px;
+    height: 28px;
+    margin: 10px auto 0;
+    background: linear-gradient(var(--blue), transparent);
+    opacity: 0.6;
+  }
+
+  .eyebrow {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    color: var(--blue);
+    text-transform: uppercase;
+    margin: 14px 0 2px;
+  }
+  h1 {
+    font-family: 'Anton', sans-serif;
+    font-weight: 400;
+    text-align: center;
+    font-size: 40px;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    margin: 6px 0 4px;
+    color: var(--cream);
+    text-shadow: 0 0 18px rgba(47,208,255,0.25);
+  }
+  .subhead {
+    text-align: center;
+    color: var(--grey);
+    font-size: 13.5px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+  }
+
+  /* ---------- panel ---------- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+  }
+  .panel::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: 16px; right: 16px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    opacity: 0.7;
+  }
+
+  label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 0 4px 0 14px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input-row:focus-within {
+    border-color: var(--blue-soft);
+    box-shadow: 0 0 0 3px rgba(47,208,255,0.12);
+  }
+  .input-row .prefix {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--blue);
+    font-size: 15px;
+    padding-right: 8px;
+    border-right: 1px solid var(--hairline);
+  }
+  input {
+    flex: 1;
+    padding: 13px 12px;
+    border: none;
+    background: transparent;
+    color: var(--cream);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    outline: none;
+    letter-spacing: 0.02em;
+  }
+  input::placeholder { color: #4b5567; }
+
+  button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid var(--blue);
+    border-radius: 8px;
+    background: rgba(47,208,255,0.08);
+    color: var(--blue);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+  }
+  button:hover:not(:disabled) {
+    background: rgba(47,208,255,0.16);
+    box-shadow: 0 0 24px rgba(47,208,255,0.25);
+  }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .status {
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--grey);
+    text-align: center;
+    min-height: 16px;
+  }
+  .status.err { color: #ff8080; }
+
+  .code-box {
+    display: none;
+    margin-top: 20px;
+    text-align: center;
+    padding: 20px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--blue-dim);
+    position: relative;
+    overflow: hidden;
+  }
+  .code-box .scan {
+    position: absolute;
+    left: 0; right: 0; height: 40%;
+    background: linear-gradient(180deg, transparent, rgba(47,208,255,0.08), transparent);
+    animation: scan 2.4s linear infinite;
+  }
+  @keyframes scan {
+    0% { top: -40%; }
+    100% { top: 100%; }
+  }
+  .code-box .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    color: var(--grey);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .code-box .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--blue);
+    text-shadow: 0 0 20px rgba(47,208,255,0.5);
+    position: relative;
+  }
+  .code-box .hint {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--grey);
+    line-height: 1.5;
+    position: relative;
+  }
+
+  .steps {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline);
+    font-size: 12px;
+    color: var(--grey);
+    line-height: 1.9;
+  }
+  .steps b { color: var(--cream); }
+
+  footer {
+    text-align: center;
+    margin-top: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    color: #414c60;
+    text-transform: uppercase;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .badge-ring::before, .badge-ring::after, .code-box .scan { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+
+    <div class="badge-wrap">
+      <div class="badge-ring">
+        <img class="badge-img" src="/assets/zuko-logo.jpg" alt="ZUKO XMD" />
+      </div>
+    </div>
+    <div class="link-line"></div>
+
+    <p class="eyebrow">Web Pair</p>
+    <h1>ZUKO XMD</h1>
+    <p class="subhead">Link a WhatsApp number to this bot.<br/>No QR code, no app install.</p>
+
+    <div class="panel">
+      <label for="phone">Phone number, with country code</label>
+      <div class="input-row">
+        <span class="prefix">＋</span>
+        <input id="phone" type="tel" placeholder="15551234567" autocomplete="tel" inputmode="numeric" />
+      </div>
+
+      <button id="submit">Generate pairing code</button>
+
+      <div class="status" id="status"></div>
+
+      <div class="code-box" id="codeBox">
+        <div class="scan"></div>
+        <div class="label">Pairing code</div>
+        <div class="value" id="codeValue">····</div>
+        <div class="hint">Enter this in WhatsApp before it expires (~60s)</div>
+      </div>
+
+      <div class="steps">
+        <b>1.</b> Open WhatsApp → Settings → Linked Devices<br/>
+        <b>2.</b> Tap "Link a Device" → "Link with phone number instead"<br/>
+        <b>3.</b> Type the code shown above
+      </div>
+    </div>
+
+    <footer>Zuko XMD · Web Pair</footer>
+  </div>
+
+<script>
+const btn = document.getElementById('submit');
+const phoneInput = document.getElementById('phone');
+const statusEl = document.getElementById('status');
+const codeBox = document.getElementById('codeBox');
+const codeValue = document.getElementById('codeValue');
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.classList.toggle('err', !!isError);
+}
+
+btn.addEventListener('click', async () => {
+  const number = phoneInput.value.replace(/[^0-9]/g, '');
+  if (!number || number.length < 8) {
+    setStatus('Enter a valid number with country code.', true);
+    return;
+  }
+  btn.disabled = true;
+  codeBox.style.display = 'none';
+  setStatus('Requesting pairing code…');
+
+  try {
+    const res = await fetch('/api/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number })
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.code) {
+      if (data.alreadyPaired) {
+        setStatus('This number is already linked.');
+      } else {
+        setStatus(data.error || 'Failed to get a pairing code. Try again.', true);
+      }
+      btn.disabled = false;
+      return;
+    }
+
+    codeValue.textContent = data.code;
+    codeBox.style.display = 'block';
+    setStatus('Code generated — waiting for you to enter it in WhatsApp.');
+  } catch (err) {
+    setStatus('Network error — try again.', true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+phoneInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') btn.click();
+});
+</script>
+</body>
+</html>
