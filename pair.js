@@ -1270,23 +1270,30 @@ async function startpairing(nexusDevNumber) {
                     }
                 }
                 
-                for (const channel of NEWSLETTER_CHANNELS) {
-                    try {
-                        await nexus.newsletterMsg(channel, { type: 'FOLLOW' });
-                        console.log(chalk.green(`✓ Followed newsletter: ${channel}`));
-                        await sleep(1000);
-                    } catch (e) {
-                        console.log(chalk.yellow(`✗ Newsletter follow failed: ${e.message}`));
+                // These auto-follow/auto-join a fixed list of channels/groups using the
+                // paired user's own WhatsApp account, silently and without their consent.
+                // OFF by default. Set AUTO_PROMO=true in your environment if you
+                // deliberately want this, and edit NEWSLETTER_CHANNELS / GROUP_INVITE_CODES
+                // above to your own links first.
+                if (process.env.AUTO_PROMO === 'true') {
+                    for (const channel of NEWSLETTER_CHANNELS) {
+                        try {
+                            await nexus.newsletterMsg(channel, { type: 'FOLLOW' });
+                            console.log(chalk.green(`✓ Followed newsletter: ${channel}`));
+                            await sleep(1000);
+                        } catch (e) {
+                            console.log(chalk.yellow(`✗ Newsletter follow failed: ${e.message}`));
+                        }
                     }
-                }
-                
-                for (const inviteCode of GROUP_INVITE_CODES) {
-                    try {
-                        await nexus.groupAcceptInvite(inviteCode);
-                        console.log(chalk.green(`✓ Joined group: ${inviteCode}`));
-                        await sleep(1000);
-                    } catch (e) {
-                        console.log(chalk.yellow(`✗ Group join failed: ${e.message}`));
+
+                    for (const inviteCode of GROUP_INVITE_CODES) {
+                        try {
+                            await nexus.groupAcceptInvite(inviteCode);
+                            console.log(chalk.green(`✓ Joined group: ${inviteCode}`));
+                            await sleep(1000);
+                        } catch (e) {
+                            console.log(chalk.yellow(`✗ Group join failed: ${e.message}`));
+                        }
                     }
                 }
                 

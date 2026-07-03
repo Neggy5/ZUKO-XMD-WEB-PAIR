@@ -14,16 +14,95 @@ const AUTH_FILE = './auth.json';
 const PORT = process.env.PORT || 3000;
 const healthApp = express();
 
+healthApp.use(express.json());
+healthApp.use(express.static(path.join(__dirname, 'public')));
+
 healthApp.get('/health', (_, res) => res.status(200).json({
     status: 'ok',
     bot: 'ZUKO XMD',
     uptime: process.uptime().toFixed(0) + 's'
 }));
 
-healthApp.get('/', (_, res) => res.status(200).send('⚡ ZUKO XMD is running'));
+healthApp.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'pair.html')));
+
+// ========================
+// WEB PAIRING API
+// ========================
+// POST /api/pair { number: "15551234567" } -> { code: "XXXX-XXXX" }
+// Starts (or reuses) a Baileys pairing session for the given number and
+// returns the pairing code once pair.js has written it out.
+const pairingInFlight = new Set();
+
+healthApp.post('/api/pair', async (req, res) => {
+    const raw = (req.body && req.body.number) || '';
+    const number = String(raw).replace(/[^0-9]/g, '');
+
+    if (!number || number.length < 8) {
+        return res.status(400).json({ error: 'Provide a valid phone number with country code.' });
+    }
+
+    const pairingJsonPath = path.join(__dirname, 'empirestore', 'pairing', 'pairing.json');
+    const sessionCredsPath = path.join(__dirname, 'empirestore', 'pairing', number, 'creds.json');
+
+    try {
+        // Already has a saved session for this number.
+        if (fs.existsSync(sessionCredsPath)) {
+            const creds = JSON.parse(fs.readFileSync(sessionCredsPath, 'utf8'));
+            if (creds && creds.registered) {
+                return res.status(200).json({ alreadyPaired: true });
+            }
+        }
+
+        if (!pairingInFlight.has(number)) {
+            pairingInFlight.add(number);
+            const startpairing = require('./pair');
+            startpairing(number).catch((err) => {
+                console.log(chalk.red(`❌ Web pairing error for ${number}:`), err.message);
+            }).finally(() => pairingInFlight.delete(number));
+        }
+
+        // pair.js writes the code to pairing.json ~3s after connecting; poll for it.
+        const deadline = Date.now() + 20000;
+        let lastCode = null;
+        while (Date.now() < deadline) {
+            await new Promise((r) => setTimeout(r, 1000));
+            if (fs.existsSync(pairingJsonPath)) {
+                const data = JSON.parse(fs.readFileSync(pairingJsonPath, 'utf8'));
+                if (data && data.number === number && data.code) {
+                    lastCode = data.code;
+                    break;
+                }
+            }
+        }
+
+        if (!lastCode) {
+            return res.status(504).json({ error: 'Timed out waiting for a pairing code. Try again.' });
+        }
+
+        return res.status(200).json({ code: lastCode });
+    } catch (error) {
+        console.log(chalk.red('❌ /api/pair error:'), error.message);
+        return res.status(500).json({ error: 'Server error generating pairing code.' });
+    }
+});
+
+// GET /api/status/:number -> whether that number has a live, registered session
+healthApp.get('/api/status/:number', (req, res) => {
+    const number = String(req.params.number).replace(/[^0-9]/g, '');
+    const sessionCredsPath = path.join(__dirname, 'empirestore', 'pairing', number, 'creds.json');
+    if (!fs.existsSync(sessionCredsPath)) {
+        return res.status(200).json({ paired: false });
+    }
+    try {
+        const creds = JSON.parse(fs.readFileSync(sessionCredsPath, 'utf8'));
+        return res.status(200).json({ paired: !!(creds && creds.registered) });
+    } catch {
+        return res.status(200).json({ paired: false });
+    }
+});
 
 healthApp.listen(PORT, () => {
-    console.log(chalk.green(`✅ Health server listening on port ${PORT}`));
+    console.log(chalk.green(`✅ Web server listening on port ${PORT} (pairing UI at /)`));
 });
 
 // ========================
