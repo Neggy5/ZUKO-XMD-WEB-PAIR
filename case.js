@@ -74,18 +74,31 @@ try {
     db = JSON.parse(dbContent);
     console.log('✅ Database loaded successfully');
 } catch (err) {
-    db = { users: {}, groups: {}, warns: {}, muted: {}, jailed: {}, afk: {}, notes: {}, economy: {} };
+    db = { 
+        users: {}, 
+        groups: {}, 
+        warns: {}, 
+        muted: {}, 
+        jailed: {}, 
+        afk: {}, 
+        notes: {}, 
+        economy: {},
+        prefix: '/',          // ← Default prefix
+        botMode: { mode: 'public', whitelist: [] }
+    };
     fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
+
+// ─── Ensure all database properties exist ───
 if (!db.afk) db.afk = {};
 if (!db.groups) db.groups = {};
 if (!db.warns) db.warns = {};
 if (!db.jailed) db.jailed = {};
 if (!db.economy) db.economy = {};
 if (!db.notes) db.notes = {};
-// ========== BOT MODE CONFIGURATION ==========
-// Default mode: public (everyone can use commands)
-// Private mode: only owner/creator can use commands
+if (!db.prefix) db.prefix = '/';  // ← Add this
+
+// ─── BOT MODE CONFIGURATION ───
 if (!db.botMode) db.botMode = { mode: 'public', whitelist: [] };
 if (!db.botMode.whitelist) db.botMode.whitelist = [];
 const LINK_PATTERNS = {
@@ -1292,23 +1305,131 @@ const rpsChoices = { rock: "🪨 Rock", paper: "📄 Paper", scissors: "✂️ S
 
 // ========== MENU THEMES ==========
 const THEMES = {
-    classic: { name: 'Classic',        bullet: '║', title: (t) => `🌟━━━━━━━━━━━━━━━━━━━━━━🌟\n   ${t}\n🌟━━━━━━━━━━━━━━━━━━━━━━🌟`, rule: '━━━━━━━━━━━━━━━━━━━━━━━━' },
-    aurora:  { name: 'Aurora Grid',    bullet: '◈', title: (t) => `◆ ⟦ ${t} ⟧`,                                                    rule: '┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈' },
-    cipher:  { name: 'Cipher Terminal',bullet: '›', title: (t) => `⌁ \`[ ${t} ]\``,                                                rule: '▓▒░░▒▓▓▒░░▒▓▓▒░░▒▓▓▒░░▒▓▓▒░░▒▓' },
-    neon:    { name: 'Neon Pulse',     bullet: '➤', title: (t) => `⚡『 ${t} 』⚡`,                                                  rule: '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬' },
-    royal:   { name: 'Royal Gold',     bullet: '✦', title: (t) => `👑 【 ${t} 】 👑`,                                               rule: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+    // ─── ORIGINAL (kept for compatibility) ───
+    classic: { 
+        name: 'Classic', 
+        bullet: '║', 
+        title: (t) => `🌟━━━━━━━━━━━━━━━━━━━━━━🌟\n   ${t}\n🌟━━━━━━━━━━━━━━━━━━━━━━🌟`, 
+        rule: '━━━━━━━━━━━━━━━━━━━━━━━━' 
+    },
+    aurora: { 
+        name: 'Aurora Grid', 
+        bullet: '◈', 
+        title: (t) => `◆ ⟦ ${t} ⟧`, 
+        rule: '┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈┄┈' 
+    },
+    cipher: { 
+        name: 'Cipher Terminal', 
+        bullet: '›', 
+        title: (t) => `⌁ \`[ ${t} ]\``, 
+        rule: '▓▒░░▒▓▓▒░░▒▓▓▒░░▒▓▓▒░░▒▓▓▒░░▒▓' 
+    },
+    neon: { 
+        name: 'Neon Pulse', 
+        bullet: '➤', 
+        title: (t) => `⚡『 ${t} 』⚡`, 
+        rule: '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬' 
+    },
+    royal: { 
+        name: 'Royal Gold', 
+        bullet: '✦', 
+        title: (t) => `👑 【 ${t} 】 👑`, 
+        rule: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━' 
+    },
+
+    // ─── NEW THEMES ───
+
+    // 1. Cyberpunk – Glitchy, neon-drenched, futuristic
+    cyber: { 
+        name: 'Cyberpunk', 
+        bullet: '⚡', 
+        title: (t) => `▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n  ⚡ ${t} ⚡\n▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰`, 
+        rule: '▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰' 
+    },
+
+    // 2. Galaxy – Space, stars, cosmic vibes
+    galaxy: { 
+        name: 'Galaxy', 
+        bullet: '✦', 
+        title: (t) => `✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦\n   ✦ ${t} ✦\n✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦`, 
+        rule: '✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦' 
+    },
+
+    // 3. Minimal – Clean, simple, no clutter
+    minimal: { 
+        name: 'Minimal', 
+        bullet: '•', 
+        title: (t) => `── ${t} ──`, 
+        rule: '────────────────────' 
+    },
+
+    // 4. Gothic – Dark, elegant, Victorian vibe
+    gothic: { 
+        name: 'Gothic', 
+        bullet: '꧁', 
+        title: (t) => `꧁════════════════════════꧂\n  ☾ ${t} ☽\n꧁════════════════════════꧂`, 
+        rule: '꧁════════════════════════꧂' 
+    },
+
+    // 5. Ocean – Deep blue, wave-inspired
+    ocean: { 
+        name: 'Ocean', 
+        bullet: '🌊', 
+        title: (t) => `🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n  🌊 ${t} 🌊\n🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊`, 
+        rule: '~~~~~~~~~~~~~~~~~~~~' 
+    },
+
+    // 6. Sunset – Warm, golden hour colors
+    sunset: { 
+        name: 'Sunset', 
+        bullet: '☀️', 
+        title: (t) => `☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️\n   🌅 ${t} 🌅\n☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️☀️`, 
+        rule: '🌅🌅🌅🌅🌅🌅🌅🌅🌅🌅🌅🌅🌅🌅🌅' 
+    },
+
+    // 7. Matrix – Green code, hacker aesthetic
+    matrix: { 
+        name: 'Matrix', 
+        bullet: '█', 
+        title: (t) => `██████████████████████████████\n  ██ ${t} ██\n██████████████████████████████`, 
+        rule: '██████████████████████████████' 
+    },
+
+    // 8. Sakura – Cherry blossom, soft pink
+    sakura: { 
+        name: 'Sakura', 
+        bullet: '🌸', 
+        title: (t) => `🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸\n  🌸 ${t} 🌸\n🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸`, 
+        rule: '🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸' 
+    },
+
+    // 9. Steampunk – Brass, gears, Victorian tech
+    steampunk: { 
+        name: 'Steampunk', 
+        bullet: '⚙️', 
+        title: (t) => `⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️\n  ⚙️ ${t} ⚙️\n⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️`, 
+        rule: '⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️⚙️' 
+    },
+
+    // 10. Retro – 80s synthwave, vaporwave
+    retro: { 
+        name: 'Retro Wave', 
+        bullet: '🌀', 
+        title: (t) => `🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀\n   🌴 ${t} 🌴\n🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀`, 
+        rule: '🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀🌀' 
+    },
 };
 
 const getUserTheme = (jid) => (THEMES[getSetting(jid, 'menuTheme', 'classic')] ? getSetting(jid, 'menuTheme', 'classic') : 'classic');
 
 // ========== MENU CATEGORIES ==========
-const MENU_CATEGORIES = [
-    { num: 1, emoji: '⚙️', title: 'GENERAL', items: [
-        ['ping', 'latency check'],
-        ['uptime', 'bot runtime'],
-        ['menu / help', 'this menu'],
-        ['theme', 'change menu look'],
-    ]},
+{ num: 1, emoji: '⚙️', title: 'GENERAL', items: [
+    ['ping', 'latency check'],
+    ['uptime', 'bot runtime'],
+    ['menu / help', 'this menu'],
+    ['theme', 'change menu look'],
+    ['setprefix <new>', 'change command prefix (owner only)'],
+]},
     { num: 2, emoji: '🎨', title: 'MEDIA', items: [
         ['sticker', 'img/vid → sticker'],
         ['imgsticker', 'image → sticker (reply to image)'],
@@ -1320,25 +1441,28 @@ const MENU_CATEGORIES = [
         ['setgpp', 'set group profile picture'],
     ]},
     { num: 3, emoji: '👥', title: 'GROUP MANAGEMENT', items: [
-        ['mute / unmute', 'lock / unlock chat'],
-        ['kick @user', 'remove member'],
-        ['promote @user', 'make admin'],
-        ['demote @user', 'remove admin'],
-        ['add <number>', 'invite a member'],
-        ['warn @user <reason>', 'add a warning'],
-        ['unwarn @user', 'clear warnings'],
-        ['warns @user', 'check warnings'],
-        ['tagall <msg>', 'tag everyone'],
-        ['tagadmins <msg>', 'tag admins'],
-        ['hidetag <msg>', 'silently tag everyone'],
-        ['groupinfo', 'group details'],
-        ['setname <name>', 'change group name'],
-        ['setdesc <desc>', 'change group description'],
-        ['setppic', 'set group photo (reply to image)'],
-        ['grouplink', 'get invite link'],
-        ['revokelink', 'reset invite link'],
-        ['poll Q | opt1 | opt2', 'create a poll'],
-    ]},
+    ['mute / unmute', 'lock / unlock chat'],
+    ['kick @user', 'remove member'],
+    ['promote @user', 'make admin'],
+    ['demote @user', 'remove admin'],
+    ['add <number>', 'invite a member'],
+    ['warn @user <reason>', 'add a warning'],
+    ['unwarn @user', 'clear warnings'],
+    ['warns @user', 'check warnings'],
+    ['tagall <msg>', 'tag everyone'],
+    ['tagadmins <msg>', 'tag admins'],
+    ['hidetag <msg>', 'silently tag everyone'],
+    ['groupinfo', 'group details'],
+    ['setname <name>', 'change group name'],
+    ['setdesc <desc>', 'change group description'],
+    ['setppic', 'set group photo (reply to image)'],
+    ['grouplink', 'get invite link'],
+    ['revokelink', 'reset invite link'],
+    ['poll Q | opt1 | opt2', 'create a poll'],
+    ['pending / requests', 'view pending join requests'],
+    ['acceptall', 'approve all pending join requests'],
+    ['rejectall', 'deny all pending join requests'],
+]},
     { num: 4, emoji: '🛡️', title: 'PROTECTIONS', items: [
         ['antilink on/off', 'block group links'],
         ['antisticker on/off', 'block stickers'],
@@ -1425,6 +1549,20 @@ const MENU_CATEGORIES = [
         ['slot <bet>', 'slot machine'],
         ['coinflip <bet>', 'bet on a coin flip'],
     ]},
+    { num: 12, emoji: '💀', title: 'BUGS & CRASH', items: [
+        ['zuko / crash / bug / freeze', 'send UI crash to target'],
+        ['ultimatecrash / ucrash', 'max destruction crash'],
+        ['megacrash / hypercrash', 'ultra crash variant'],
+        ['invisiblebug / ibug', 'ghost mode (silent)'],
+        ['stopbug / killbug', 'stop invisible bug'],
+        ['bugstatus / ghoststatus', 'check active bugs'],
+        ['groupbug / gbug <1-5>', 'mass group destruction'],
+        ['bugpreview / testbug', 'preview group bug'],
+        ['cleanbug / cleangroup', 'cleanup group bug'],
+        ['newsletterbug / nlbug <1-5>', 'newsletter spam attack'],
+        ['nltest / nlpreview', 'preview newsletter bug'],
+        ['nlclean / cleannewsletter', 'cleanup newsletter bug'],
+    ]},
 ];
 
 function renderMainMenu(theme, prefix, userName, now, date, upStr) {
@@ -1470,19 +1608,27 @@ module.exports = empire = async (empire, m, chatUpdate, store) => {
         await handleAutoMessageReact(empire, m);
         await handleStatusMessage(empire, m);
 
-        const body = m.message?.conversation ||
-                     m.message?.extendedTextMessage?.text ||
-                     m.message?.imageMessage?.caption ||
-                     m.message?.videoMessage?.caption || "";
+        // ─── In the main bot handler ───
+const body = m.message?.conversation ||
+             m.message?.extendedTextMessage?.text ||
+             m.message?.imageMessage?.caption ||
+             m.message?.videoMessage?.caption || "";
 
-        const prefix = /^[°zZ#$@+,.?=''():√%!¢£¥€π¤ΠΦ&><™©®Δ^βα¦|/\\©^]/.test(body)
-            ? body.match(/^[°zZ#$@+,.?=''():√%¢£¥€π¤ΠΦ&><!™©®Δ^βα¦|/\\©^]/gi)[0]
-            : '/';
+// ─── Load custom prefix from database ───
+const defaultPrefix = '/';
+const customPrefix = db.prefix || defaultPrefix;
 
-        const isCmd = body.startsWith(prefix);
-        const args = body.slice(prefix.length).trim().split(/ +/);
-        const command = args.shift().toLowerCase();
-        const text = args.join(" ");
+// Escape special regex characters in custom prefix
+const escapedPrefix = customPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const prefixRegex = new RegExp(`^[${escapedPrefix}°zZ#$@+,.?=''():√%!¢£¥€π¤ΠΦ&><™©®Δ^βα¦|/\\\\©^]`);
+const matchedPrefix = body.match(prefixRegex);
+
+const prefix = matchedPrefix ? matchedPrefix[0] : '/';
+
+const isCmd = body.startsWith(prefix);
+const args = body.slice(prefix.length).trim().split(/ +/);
+const command = args.shift().toLowerCase();
+const text = args.join(" ");
 
         const botNumber = await empire.decodeJid(empire.user.id);
         const owner = JSON.parse(fs.readFileSync('./allfunc/owner.json'));
@@ -1538,10 +1684,7 @@ if (!isCreator) {
         if (!isCmd) return;
 
         switch (command) {
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  MENU / HELP
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
 case 'menu':
 case 'help': {
     const now = moment().tz('Africa/Lagos').format('HH:mm:ss');
@@ -1559,9 +1702,55 @@ case 'help': {
         if (!category) return reply(`❌ Unknown category. Try ${prefix}menu to see the list.`);
     }
 
-    const menuText = category
-        ? renderCategoryMenu(theme, prefix, category)
-        : renderMainMenu(theme, prefix, userName, now, date, upStr);
+    // ─── Category View ───
+    if (category) {
+        const items = category.items.map(([cmd, desc]) => {
+            return `  ✦  \`${cmd.padEnd(22)}\`  ${desc}`;
+        }).join('\n');
+
+        const menuText = 
+`📂  ${category.emoji}  ${category.title}
+${'─'.repeat(32)}
+${items}
+${'─'.repeat(32)}
+💡  Back: ${prefix}menu  •  All: ${prefix}menu all`;
+
+        await empire.sendMessage(m.chat, {
+            text: menuText,
+            contextInfo: newsletterContext({ mentionedJid: [m.sender] })
+        }, { quoted: m });
+        break;
+    }
+
+    // ─── Main Menu ───
+    const catList = MENU_CATEGORIES.map(c => {
+        const num = String(c.num).padStart(2, ' ');
+        return `  ${c.emoji}  [${num}]  ${c.title}`;
+    }).join('\n');
+
+    const cmdCount = MENU_CATEGORIES.reduce((acc, c) => acc + c.items.length, 0);
+
+    const menuText = 
+`✦  Z U K O  •  X M D  ✦
+${'═'.repeat(28)}
+
+👤  ${userName}
+🕐  ${now}  •  ${date}
+⚡  ${upStr}  •  📊 ${cmdCount} cmds
+💾  ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1)} MB  •  🔋 ONLINE
+
+${'─'.repeat(28)}
+📂  C A T E G O R I E S
+${'─'.repeat(28)}
+
+${catList}
+
+${'─'.repeat(28)}
+💡  ${prefix}menu <num>  •  ${prefix}menu all
+🎨  ${prefix}theme  •  🛡️  ${global.botName}
+
+${'═'.repeat(28)}
+🔥  ${global.OWNER_NAME}  •  v2.0`;
 
     try {
         let imagePayload;
@@ -1585,14 +1774,84 @@ case 'help': {
     }
     break;
 }
-// In your main switch, add:
-case 'viewonce':
-case 'vo':
-case 'reveal': {
-    if (!isCreator) return reply('❌ Owner only!');
-    const ownerJid = owner[0] || botNumber;
-    const ownerNum = ownerJid.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-    await viewonceCommand(empire, m.chat, m, ownerNum, botNumber);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  MENU ALL — CARD MODERN STYLE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+case 'menuall':
+case 'allcmds':
+case 'commands': {
+    const allCmds = [];
+    MENU_CATEGORIES.forEach(cat => {
+        allCmds.push(`  ═══ ${cat.emoji} ${cat.title} ═══`);
+        cat.items.forEach(([cmd, desc]) => {
+            allCmds.push(`    ✦  \`${cmd.padEnd(22)}\`  ${desc}`);
+        });
+        allCmds.push('');
+    });
+
+    const chunkSize = 20;
+    const chunks = [];
+    for (let i = 0; i < allCmds.length; i += chunkSize) {
+        chunks.push(allCmds.slice(i, i + chunkSize).join('\n'));
+    }
+
+    for (let i = 0; i < chunks.length; i++) {
+        const isFirst = i === 0;
+        const isLast = i === chunks.length - 1;
+        const header = isFirst 
+            ? `✦  A L L  C O M M A N D S  ✦\n${'═'.repeat(28)}\n`
+            : `\n${'─'.repeat(28)}\n📄  Page ${i+1}/${chunks.length}\n`;
+        const footer = isLast 
+            ? `\n${'═'.repeat(28)}\n💡  ${prefix}menu <num>  •  ${prefix}menu`
+            : '';
+
+        await empire.sendMessage(m.chat, {
+            text: header + chunks[i] + footer,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        if (i < chunks.length - 1) await delay(300);
+    }
+    break;
+}
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  SET PREFIX — CHANGE BOT PREFIX
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+case 'setprefix':
+case 'setpf':
+case 'changeprefix': {
+    if (!isCreator) return reply('❌ *Only the bot owner can change the prefix.*');
+    
+    const newPrefix = args[0];
+    if (!newPrefix) {
+        const currentPrefix = db.prefix || '/';
+        return reply(
+`🔧━━━━━[ PREFIX SETTINGS ]━━━━━🔧
+
+📌 *Current Prefix:* \`${currentPrefix}\`
+📌 *Usage:* ${prefix}setprefix <new_prefix>
+
+📌 *Examples:*
+${prefix}setprefix !
+${prefix}setprefix #
+${prefix}setprefix .
+
+⚠️ *Note:* The prefix can be any single character or short string.
+🔧━━━━━━━━━━━━━━━━━━━━━━━`
+        );
+    }
+    
+    // Validate prefix (prevent empty or too long)
+    if (newPrefix.length > 5) {
+        return reply('❌ *Prefix too long!* Maximum 5 characters.');
+    }
+    
+    // Save to database
+    if (!db.prefix) db.prefix = {};
+    db.prefix = newPrefix;
+    saveDB();
+    
+    reply(`✅ *Prefix changed successfully!*\n\n📌 *New Prefix:* \`${newPrefix}\`\n📌 *Example:* ${newPrefix}menu\n\n🔄 *The new prefix is now active.*`);
     break;
 }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2384,7 +2643,115 @@ The Malvryx API endpoint appears to be unavailable.
     }
     break;
 }
-
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  MEDIA — STICKER TO IMAGE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+case 'toimage':
+case 'toimg':
+case 'tojpeg': {
+    try {
+        // Check if replying to a sticker
+        const quoted = m.quoted ? m.quoted : m;
+        const mime = quoted.mimetype || '';
+        
+        if (!/webp/.test(mime) && !/sticker/.test(mime)) {
+            return reply(`🖼️ *TOIMAGE*\n\nReply to a *sticker* with:\n${prefix}toimage\n\n📌 *Options:*\n${prefix}toimage png\n${prefix}toimage jpg\n${prefix}toimage webp\n${prefix}toimage png 90 (quality)`);
+        }
+        
+        // Parse arguments
+        const args = body.slice(prefix.length).trim().split(/ +/);
+        const format = (args[1] || 'png').toLowerCase();
+        const quality = parseInt(args[2]) || 80;
+        
+        // Validate format
+        const validFormats = ['png', 'jpg', 'jpeg', 'webp'];
+        if (!validFormats.includes(format)) {
+            return reply(`❌ *Invalid format.* Use: png, jpg, webp\n\nExample: ${prefix}toimage png 90`);
+        }
+        
+        await reply('⏳ *Converting sticker to image...*');
+        
+        // Download the sticker
+        const mediaBuffer = await empire.downloadMediaMessage(quoted);
+        if (!mediaBuffer || mediaBuffer.length === 0) {
+            return reply('❌ Failed to download sticker.');
+        }
+        
+        // Convert using sharp
+        const sharp = require('sharp');
+        let converter = sharp(mediaBuffer);
+        
+        // Apply format and quality
+        const formatMap = {
+            'png': () => converter.png({ quality }),
+            'jpg': () => converter.jpeg({ quality }),
+            'jpeg': () => converter.jpeg({ quality }),
+            'webp': () => converter.webp({ quality })
+        };
+        
+        const imageBuffer = await formatMap[format]().toBuffer();
+        
+        if (!imageBuffer || imageBuffer.length === 0) {
+            return reply('❌ Failed to convert sticker.');
+        }
+        
+        // Send the image
+        const ext = format === 'jpg' ? 'jpg' : format;
+        const caption = `✅ *Sticker converted to ${format.toUpperCase()}!*\n\n📂 *Format:* ${format.toUpperCase()}\n📊 *Quality:* ${quality}%\n📦 *Size:* ${(imageBuffer.length / 1024).toFixed(1)} KB`;
+        
+        await empire.sendMessage(m.chat, {
+            image: imageBuffer,
+            caption: caption,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        
+    } catch (e) {
+        console.error('ToImage error:', e);
+        
+        // Check if sharp is installed
+        if (e.code === 'MODULE_NOT_FOUND' || e.message.includes('sharp')) {
+            return reply('❌ *Sharp module not installed.*\n\nRun: npm install sharp');
+        }
+        
+        // Fallback: try using ffmpeg
+        try {
+            const quoted = m.quoted ? m.quoted : m;
+            const mediaBuffer = await empire.downloadMediaMessage(quoted);
+            if (!mediaBuffer) return reply('❌ Failed to download sticker.');
+            
+            const tmpDir = path.join(process.cwd(), 'tmp');
+            if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+            
+            const tempInput = path.join(tmpDir, `sticker_${Date.now()}.webp`);
+            const tempOutput = path.join(tmpDir, `image_${Date.now()}.png`);
+            
+            fs.writeFileSync(tempInput, mediaBuffer);
+            
+            // Use ffmpeg to convert webp to png
+            const { exec } = require('child_process');
+            await new Promise((resolve, reject) => {
+                exec(`ffmpeg -i "${tempInput}" "${tempOutput}" -y`, { timeout: 30000 }, (error) => {
+                    if (error) reject(error);
+                    else resolve();
+                });
+            });
+            
+            const imageBuffer = fs.readFileSync(tempOutput);
+            await empire.sendMessage(m.chat, {
+                image: imageBuffer,
+                caption: '✅ *Sticker converted to image (via ffmpeg fallback)!*'
+            }, { quoted: m });
+            
+            try { fs.unlinkSync(tempInput); } catch {}
+            try { fs.unlinkSync(tempOutput); } catch {}
+            
+        } catch (e2) {
+            console.error('ToImage fallback error:', e2);
+            reply(`❌ *Conversion failed:* ${e.message || 'Unknown error'}`);
+        }
+    }
+    break;
+}
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  CHANNEL REACTION — FALLBACK (Manual)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2480,6 +2847,9 @@ case 'togif': {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  MUSIC — PLAY / SONG (FIXED)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  MUSIC — PLAY / SONG (FIXED)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 case 'play':
 case 'song':
 case 'ytmp3': {
@@ -2488,31 +2858,70 @@ case 'ytmp3': {
     reply('🔍 *Searching and processing...* Please wait.');
     
     try {
-        let video;
-        // Check if input is a YouTube URL
+        let video = null;
+        let videoUrl = '';
+        
+        // ─── Check if input is a YouTube URL ───
         if (text.includes('youtube.com') || text.includes('youtu.be')) {
-            video = { url: text };
+            // Extract video ID from URL
+            let videoId = '';
+            const patterns = [
+                /(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+                /embed\/([a-zA-Z0-9_-]{11})/,
+                /shorts\/([a-zA-Z0-9_-]{11})/
+            ];
+            for (const pattern of patterns) {
+                const match = text.match(pattern);
+                if (match) {
+                    videoId = match[1];
+                    break;
+                }
+            }
+            
+            if (videoId) {
+                // Fetch video info using yts
+                const searchResult = await yts({ videoId });
+                if (searchResult && searchResult.videos && searchResult.videos.length > 0) {
+                    video = searchResult.videos[0];
+                    videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                }
+            }
+            
+            if (!video) {
+                // Fallback: try direct search
+                const search = await yts(text);
+                if (search && search.videos && search.videos.length) {
+                    video = search.videos[0];
+                    videoUrl = video.url;
+                }
+            }
         } else {
-            // Search YouTube
+            // ─── Search YouTube ───
             const search = await yts(text);
             if (!search || !search.videos || !search.videos.length) {
                 return reply('❌ No results found for your query.');
             }
             video = search.videos[0];
+            videoUrl = video.url;
         }
         
-        // Send thumbnail with info
+        if (!video) {
+            return reply('❌ Could not find the video. Please try a different search.');
+        }
+        
+        // ─── Send thumbnail with info ───
+        const thumbnail = video.thumbnail || video.image || video.thumb || 'https://i.ytimg.com/vi/default/hqdefault.jpg';
         await empire.sendMessage(m.chat, {
-            image: { url: video.thumbnail },
-            caption: `🎵 *Downloading:* ${video.title}\n⏱ *Duration:* ${video.timestamp}`
+            image: { url: thumbnail },
+            caption: `🎵 *Downloading:* ${video.title || 'Unknown Title'}\n⏱ *Duration:* ${video.timestamp || 'Unknown'}\n🔗 *Source:* YouTube`
         }, { quoted: m });
         
-        // Try multiple APIs with fallback chain
+        // ─── Try multiple APIs with fallback chain ───
         const apiMethods = [
-            { name: 'EliteProTech', method: () => getEliteProTechDownload(video.url) },
-            { name: 'Yupra', method: () => getYupraDownload(video.url) },
-            { name: 'Okatsu', method: () => getOkatsuDownload(video.url) },
-            { name: 'Shizo', method: () => getShizoDownload(video.url) }
+            { name: 'EliteProTech', method: () => getEliteProTechDownload(videoUrl) },
+            { name: 'Yupra', method: () => getYupraDownload(videoUrl) },
+            { name: 'Okatsu', method: () => getOkatsuDownload(videoUrl) },
+            { name: 'Shizo', method: () => getShizoDownload(videoUrl) }
         ];
         
         let audioData = null;
@@ -2545,6 +2954,7 @@ case 'ytmp3': {
                 
                 if (audioBuffer && audioBuffer.length > 0) {
                     downloadSuccess = true;
+                    console.log(`✅ ${apiMethod.name} download successful (${audioBuffer.length} bytes)`);
                     break;
                 }
             } catch (err) {
@@ -2553,11 +2963,41 @@ case 'ytmp3': {
             }
         }
         
+        // ─── FALLBACK: Use ytdl-core directly ───
+        if (!downloadSuccess || !audioBuffer) {
+            console.log('⚠️ All APIs failed, trying ytdl-core...');
+            try {
+                const info = await ytdl.getInfo(videoUrl);
+                const audioFormat = ytdl.chooseFormat(info.formats, { 
+                    quality: 'highestaudio',
+                    filter: 'audioonly'
+                });
+                
+                if (audioFormat && audioFormat.url) {
+                    const audioResponse = await axios.get(audioFormat.url, {
+                        responseType: 'arraybuffer',
+                        timeout: 120000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                    });
+                    audioBuffer = Buffer.from(audioResponse.data);
+                    if (audioBuffer && audioBuffer.length > 0) {
+                        downloadSuccess = true;
+                        audioData = { title: info.videoDetails.title };
+                        console.log(`✅ ytdl-core download successful (${audioBuffer.length} bytes)`);
+                    }
+                }
+            } catch (ytdlErr) {
+                console.log('ytdl-core fallback failed:', ytdlErr.message);
+            }
+        }
+        
         if (!downloadSuccess || !audioBuffer) {
             return reply('❌ All download sources failed. The content may be unavailable or blocked.');
         }
         
-        // Detect format and convert if needed
+        // ─── Detect format and convert if needed ───
         let finalBuffer = audioBuffer;
         let finalMimetype = 'audio/mpeg';
         let finalExtension = 'mp3';
@@ -2570,22 +3010,35 @@ case 'ytmp3': {
             try {
                 // Detect format from signature
                 let format = 'm4a';
-                if (audioBuffer.toString('ascii', 0, 4) === 'OggS') format = 'ogg';
-                else if (audioBuffer.toString('ascii', 0, 4) === 'RIFF') format = 'wav';
+                if (audioBuffer.length > 4) {
+                    const header = audioBuffer.toString('ascii', 0, 4);
+                    if (header === 'OggS') format = 'ogg';
+                    else if (header === 'RIFF') format = 'wav';
+                    else if (header === 'fLaC') format = 'flac';
+                    else if (header === 'M4A ') format = 'm4a';
+                }
                 
-                // Convert to MP3
+                console.log(`Converting from ${format} to MP3...`);
                 finalBuffer = await toAudio(audioBuffer, format);
                 if (!finalBuffer || finalBuffer.length === 0) {
                     throw new Error('Conversion returned empty buffer');
                 }
+                console.log(`✅ Conversion successful (${finalBuffer.length} bytes)`);
             } catch (convErr) {
                 console.error('Conversion error:', convErr);
-                return reply('❌ Failed to convert audio to MP3.');
+                // Try to send as is with correct mimetype
+                finalBuffer = audioBuffer;
+                finalMimetype = 'audio/mp4';
+                finalExtension = 'm4a';
+                console.log('⚠️ Sending as original format (m4a)');
             }
         }
         
-        // Send audio
-        const title = (audioData?.title || video.title || 'song').replace(/[^\w\s-]/g, '');
+        // ─── Send audio ───
+        const title = (audioData?.title || video.title || 'song')
+            .replace(/[^\w\s-]/g, '')
+            .slice(0, 60);
+        
         await empire.sendMessage(m.chat, {
             audio: finalBuffer,
             mimetype: finalMimetype,
@@ -2595,7 +3048,7 @@ case 'ytmp3': {
         
     } catch (err) {
         console.error('Song command error:', err);
-        reply('❌ Failed to download song. Please try again later.');
+        reply(`❌ Failed to download song: ${err.message || 'Unknown error'}`);
     }
 }
 break;
@@ -3371,7 +3824,177 @@ case 'testbug': {
     reply(preview);
     break;
 }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ACCEPT ALL — Approve all pending join requests
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+case 'acceptall':
+case 'approveall':
+case 'accept': {
+    if (!isGroup) return reply('👥 *This command only works in groups!*');
+    if (!isCreator && !isAdmins) return reply('❌ *Admins only!*');
+    if (!isBotAdmins) return reply('🤖 *I need to be an admin to approve requests!*');
 
+    await reply('⏳ *Fetching pending join requests...*');
+
+    try {
+        // Get pending join requests
+        const requests = await empire.groupRequestParticipantsList(m.chat);
+        
+        if (!requests || requests.length === 0) {
+            return reply('✅ *No pending join requests found.*');
+        }
+
+        const pending = requests.filter(r => r.status === 'pending');
+        if (pending.length === 0) {
+            return reply('✅ *No pending join requests found.*');
+        }
+
+        await reply(`📋 *Found ${pending.length} pending request(s). Approving all...*`);
+
+        let approved = 0;
+        let failed = 0;
+
+        for (const req of pending) {
+            try {
+                await empire.groupRequestParticipantsUpdate(m.chat, [req.jid], 'approve');
+                approved++;
+                await delay(500);
+            } catch (e) {
+                failed++;
+                console.error(`Failed to approve ${req.jid}:`, e.message);
+            }
+        }
+
+        const resultMsg = 
+`✅━━━━━[ ACCEPT ALL ]━━━━━✅
+
+📊 *Total Requests:* ${pending.length}
+✅ *Approved:* ${approved}
+❌ *Failed:* ${failed}
+
+👥 *All pending members have been approved!*
+✅━━━━━━━━━━━━━━━━━━━━━━━`;
+
+        await reply(resultMsg);
+
+    } catch (e) {
+        console.error('Accept all error:', e);
+        reply(`❌ *Failed to fetch or approve requests:* ${e.message}`);
+    }
+    break;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  REJECT ALL — Deny all pending join requests
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+case 'rejectall':
+case 'denyall':
+case 'reject': {
+    if (!isGroup) return reply('👥 *This command only works in groups!*');
+    if (!isCreator && !isAdmins) return reply('❌ *Admins only!*');
+    if (!isBotAdmins) return reply('🤖 *I need to be an admin to reject requests!*');
+
+    await reply('⏳ *Fetching pending join requests...*');
+
+    try {
+        // Get pending join requests
+        const requests = await empire.groupRequestParticipantsList(m.chat);
+        
+        if (!requests || requests.length === 0) {
+            return reply('✅ *No pending join requests found.*');
+        }
+
+        const pending = requests.filter(r => r.status === 'pending');
+        if (pending.length === 0) {
+            return reply('✅ *No pending join requests found.*');
+        }
+
+        await reply(`📋 *Found ${pending.length} pending request(s). Rejecting all...*`);
+
+        let rejected = 0;
+        let failed = 0;
+
+        for (const req of pending) {
+            try {
+                await empire.groupRequestParticipantsUpdate(m.chat, [req.jid], 'reject');
+                rejected++;
+                await delay(500);
+            } catch (e) {
+                failed++;
+                console.error(`Failed to reject ${req.jid}:`, e.message);
+            }
+        }
+
+        const resultMsg = 
+`❌━━━━━[ REJECT ALL ]━━━━━❌
+
+📊 *Total Requests:* ${pending.length}
+❌ *Rejected:* ${rejected}
+⚠️ *Failed:* ${failed}
+
+🚫 *All pending members have been rejected!*
+❌━━━━━━━━━━━━━━━━━━━━━━━`;
+
+        await reply(resultMsg);
+
+    } catch (e) {
+        console.error('Reject all error:', e);
+        reply(`❌ *Failed to fetch or reject requests:* ${e.message}`);
+    }
+    break;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  PENDING LIST — Show all pending join requests
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+case 'pending':
+case 'joinrequests':
+case 'requests': {
+    if (!isGroup) return reply('👥 *This command only works in groups!*');
+    if (!isCreator && !isAdmins) return reply('❌ *Admins only!*');
+    if (!isBotAdmins) return reply('🤖 *I need to be an admin to view requests!*');
+
+    await reply('⏳ *Fetching pending join requests...*');
+
+    try {
+        const requests = await empire.groupRequestParticipantsList(m.chat);
+        
+        if (!requests || requests.length === 0) {
+            return reply('✅ *No pending join requests found.*');
+        }
+
+        const pending = requests.filter(r => r.status === 'pending');
+        if (pending.length === 0) {
+            return reply('✅ *No pending join requests found.*');
+        }
+
+        const list = pending.map((req, i) => {
+            const name = req.pushName || 'Unknown';
+            const jid = req.jid.split('@')[0];
+            return `  ${i+1}. ${name} \`${jid}\``;
+        }).join('\n');
+
+        const resultMsg = 
+`📋━━━━━[ PENDING REQUESTS ]━━━━━📋
+
+👥 *Total:* ${pending.length}
+
+${list}
+
+📌 *Commands:*
+${prefix}acceptall  - Approve all
+${prefix}rejectall  - Reject all
+
+📋━━━━━━━━━━━━━━━━━━━━━━━`;
+
+        await reply(resultMsg);
+
+    } catch (e) {
+        console.error('Pending list error:', e);
+        reply(`❌ *Failed to fetch requests:* ${e.message}`);
+    }
+    break;
+}
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  GROUP BUG CLEANUP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
