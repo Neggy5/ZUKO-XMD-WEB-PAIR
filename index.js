@@ -9,8 +9,6 @@ const AUTH_FILE = './auth.json';
 // ========================
 // RAILWAY HEALTH SERVER
 // ========================
-// Railway requires an HTTP service to bind to PORT within 60 seconds or
-// it marks the deploy as unhealthy. This tiny Express server satisfies that.
 const PORT = process.env.PORT || 3000;
 const healthApp = express();
 
@@ -28,9 +26,6 @@ healthApp.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'pair
 // ========================
 // WEB PAIRING API
 // ========================
-// POST /api/pair { number: "15551234567" } -> { code: "XXXX-XXXX" }
-// Starts (or reuses) a Baileys pairing session for the given number and
-// returns the pairing code once pair.js has written it out.
 const pairingInFlight = new Set();
 
 healthApp.post('/api/pair', async (req, res) => {
@@ -45,7 +40,6 @@ healthApp.post('/api/pair', async (req, res) => {
     const sessionCredsPath = path.join(__dirname, 'empirestore', 'pairing', number, 'creds.json');
 
     try {
-        // Already has a saved session for this number.
         if (fs.existsSync(sessionCredsPath)) {
             const creds = JSON.parse(fs.readFileSync(sessionCredsPath, 'utf8'));
             if (creds && creds.registered) {
@@ -61,16 +55,22 @@ healthApp.post('/api/pair', async (req, res) => {
             }).finally(() => pairingInFlight.delete(number));
         }
 
-        // pair.js writes the code to pairing.json ~3s after connecting; poll for it.
         const deadline = Date.now() + 20000;
         let lastCode = null;
         while (Date.now() < deadline) {
             await new Promise((r) => setTimeout(r, 1000));
             if (fs.existsSync(pairingJsonPath)) {
-                const data = JSON.parse(fs.readFileSync(pairingJsonPath, 'utf8'));
-                if (data && data.number === number && data.code) {
-                    lastCode = data.code;
-                    break;
+                try {
+                    const raw = fs.readFileSync(pairingJsonPath, 'utf8');
+                    if (raw.trim().length === 0) continue; // ← FIX: skip empty file
+                    const data = JSON.parse(raw);
+                    if (data && data.number === number && data.code) {
+                        lastCode = data.code;
+                        break;
+                    }
+                } catch (e) {
+                    // file is malformed – skip this iteration
+                    continue;
                 }
             }
         }
@@ -86,7 +86,6 @@ healthApp.post('/api/pair', async (req, res) => {
     }
 });
 
-// GET /api/status/:number -> whether that number has a live, registered session
 healthApp.get('/api/status/:number', (req, res) => {
     const number = String(req.params.number).replace(/[^0-9]/g, '');
     const sessionCredsPath = path.join(__dirname, 'empirestore', 'pairing', number, 'creds.json');
@@ -109,13 +108,9 @@ healthApp.listen(PORT, () => {
 // HELPERS
 // ========================
 function ensureAuthenticated() {
-    // Always mark authenticated so non-interactive (Railway) deploys work
     fs.writeFileSync(AUTH_FILE, JSON.stringify({ authenticated: true }));
 }
 
-// ========================
-// LAUNCH BOT MODULES
-// ========================
 function launchBot() {
     console.clear();
     console.log(chalk.green('Starting ZUKO XMD...\n'));
@@ -189,9 +184,6 @@ function launchBot() {
     };
 }
 
-// ========================
-// INITIALIZE
-// ========================
 const initializeBot = async () => {
     console.clear();
     try {
@@ -211,14 +203,9 @@ const initializeBot = async () => {
     ensureAuthenticated();
     console.log(chalk.green('✅ Auto-authenticated for server deployment.'));
 
-    // NOTE: autoLoadPairs is handled inside bot.js (8 seconds after startup).
-    // Calling it here too would double-connect all paired users — so we skip it.
     launchBot();
 };
 
-// ========================
-// GRACEFUL SHUTDOWN
-// ========================
 process.once('SIGINT', () => {
     console.log(chalk.yellow('\n\n⚠️  Shutting down gracefully...'));
     process.exit(0);
