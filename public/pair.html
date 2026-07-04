@@ -1,400 +1,681 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ZUKO XMD — Web Pair</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    color-scheme: dark;
-    --bg: #06070b;
-    --surface: #0d0f17;
-    --surface-2: #12151f;
-    --hairline: #1c2130;
-    --blue: #2fd0ff;
-    --blue-soft: #1a8bb8;
-    --blue-dim: #0d3a4d;
-    --cream: #f2e8d0;
-    --grey: #7c8798;
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0;
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--cream);
-    font-family: 'Manrope', sans-serif;
-  }
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 20px;
-    position: relative;
-    overflow-x: hidden;
-  }
-
-  /* faint circuit-grid backdrop */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(47,208,255,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(47,208,255,0.05) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: radial-gradient(ellipse 60% 50% at 50% 30%, black 0%, transparent 75%);
-    pointer-events: none;
-  }
-
-  .stage {
-    width: 100%;
-    max-width: 420px;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* ---------- Signal badge ---------- */
-  .badge-wrap {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 4px;
-  }
-  .badge-ring {
-    position: relative;
-    width: 128px;
-    height: 128px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .badge-ring::before,
-  .badge-ring::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1px solid var(--blue-soft);
-    opacity: 0;
-    animation: ping 2.8s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
-  }
-  .badge-ring::after { animation-delay: 1.4s; }
-  @keyframes ping {
-    0%   { transform: scale(0.85); opacity: 0.55; }
-    80%  { transform: scale(1.65); opacity: 0; }
-    100% { transform: scale(1.65); opacity: 0; }
-  }
-  .badge-img {
-    width: 104px;
-    height: 104px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--blue);
-    box-shadow: 0 0 22px rgba(47,208,255,0.45), 0 0 60px rgba(47,208,255,0.12);
-    position: relative;
-    z-index: 1;
-    background: #000;
-  }
-
-  /* ---------- signal line linking badge to readout ---------- */
-  .link-line {
-    width: 1px;
-    height: 28px;
-    margin: 10px auto 0;
-    background: linear-gradient(var(--blue), transparent);
-    opacity: 0.6;
-  }
-
-  .eyebrow {
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.32em;
-    color: var(--blue);
-    text-transform: uppercase;
-    margin: 14px 0 2px;
-  }
-  h1 {
-    font-family: 'Anton', sans-serif;
-    font-weight: 400;
-    text-align: center;
-    font-size: 40px;
-    letter-spacing: 0.02em;
-    line-height: 1;
-    margin: 6px 0 4px;
-    color: var(--cream);
-    text-shadow: 0 0 18px rgba(47,208,255,0.25);
-  }
-  .subhead {
-    text-align: center;
-    color: var(--grey);
-    font-size: 13.5px;
-    margin: 0 0 28px;
-    line-height: 1.5;
-  }
-
-  /* ---------- panel ---------- */
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--hairline);
-    border-radius: 14px;
-    padding: 24px;
-    position: relative;
-  }
-  .panel::before {
-    content: "";
-    position: absolute;
-    top: -1px; left: 16px; right: 16px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--blue), transparent);
-    opacity: 0.7;
-  }
-
-  label {
-    display: block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--grey);
-    margin-bottom: 8px;
-  }
-  .input-row {
-    display: flex;
-    align-items: center;
-    background: var(--surface-2);
-    border: 1px solid var(--hairline);
-    border-radius: 8px;
-    padding: 0 4px 0 14px;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-  .input-row:focus-within {
-    border-color: var(--blue-soft);
-    box-shadow: 0 0 0 3px rgba(47,208,255,0.12);
-  }
-  .input-row .prefix {
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--blue);
-    font-size: 15px;
-    padding-right: 8px;
-    border-right: 1px solid var(--hairline);
-  }
-  input {
-    flex: 1;
-    padding: 13px 12px;
-    border: none;
-    background: transparent;
-    color: var(--cream);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 15px;
-    outline: none;
-    letter-spacing: 0.02em;
-  }
-  input::placeholder { color: #4b5567; }
-
-  button {
-    width: 100%;
-    margin-top: 16px;
-    padding: 14px;
-    border: 1px solid var(--blue);
-    border-radius: 8px;
-    background: rgba(47,208,255,0.08);
-    color: var(--blue);
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
-  }
-  button:hover:not(:disabled) {
-    background: rgba(47,208,255,0.16);
-    box-shadow: 0 0 24px rgba(47,208,255,0.25);
-  }
-  button:active:not(:disabled) { transform: translateY(1px); }
-  button:disabled { opacity: 0.45; cursor: not-allowed; }
-
-  .status {
-    margin-top: 14px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--grey);
-    text-align: center;
-    min-height: 16px;
-  }
-  .status.err { color: #ff8080; }
-
-  .code-box {
-    display: none;
-    margin-top: 20px;
-    text-align: center;
-    padding: 20px;
-    border-radius: 10px;
-    background: var(--surface-2);
-    border: 1px solid var(--blue-dim);
-    position: relative;
-    overflow: hidden;
-  }
-  .code-box .scan {
-    position: absolute;
-    left: 0; right: 0; height: 40%;
-    background: linear-gradient(180deg, transparent, rgba(47,208,255,0.08), transparent);
-    animation: scan 2.4s linear infinite;
-  }
-  @keyframes scan {
-    0% { top: -40%; }
-    100% { top: 100%; }
-  }
-  .code-box .label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10.5px;
-    letter-spacing: 0.22em;
-    color: var(--grey);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    position: relative;
-  }
-  .code-box .value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    color: var(--blue);
-    text-shadow: 0 0 20px rgba(47,208,255,0.5);
-    position: relative;
-  }
-  .code-box .hint {
-    margin-top: 12px;
-    font-size: 12px;
-    color: var(--grey);
-    line-height: 1.5;
-    position: relative;
-  }
-
-  .steps {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--hairline);
-    font-size: 12px;
-    color: var(--grey);
-    line-height: 1.9;
-  }
-  .steps b { color: var(--cream); }
-
-  footer {
-    text-align: center;
-    margin-top: 22px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10.5px;
-    letter-spacing: 0.1em;
-    color: #414c60;
-    text-transform: uppercase;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .badge-ring::before, .badge-ring::after, .code-box .scan { animation: none; }
-  }
-</style>
-</head>
-<body>
-  <div class="stage">
-
-    <div class="badge-wrap">
-      <div class="badge-ring">
-        <img class="badge-img" src="/assets/zuko-logo.jpg" alt="ZUKO XMD" />
-      </div>
-    </div>
-    <div class="link-line"></div>
-
-    <p class="eyebrow">Web Pair</p>
-    <h1>ZUKO XMD</h1>
-    <p class="subhead">Link a WhatsApp number to this bot.<br/>No QR code, no app install.</p>
-
-    <div class="panel">
-      <label for="phone">Phone number, with country code</label>
-      <div class="input-row">
-        <span class="prefix">＋</span>
-        <input id="phone" type="tel" placeholder="15551234567" autocomplete="tel" inputmode="numeric" />
-      </div>
-
-      <button id="submit">Generate pairing code</button>
-
-      <div class="status" id="status"></div>
-
-      <div class="code-box" id="codeBox">
-        <div class="scan"></div>
-        <div class="label">Pairing code</div>
-        <div class="value" id="codeValue">····</div>
-        <div class="hint">Enter this in WhatsApp before it expires (~60s)</div>
-      </div>
-
-      <div class="steps">
-        <b>1.</b> Open WhatsApp → Settings → Linked Devices<br/>
-        <b>2.</b> Tap "Link a Device" → "Link with phone number instead"<br/>
-        <b>3.</b> Type the code shown above
-      </div>
-    </div>
-
-    <footer>Zuko XMD · Web Pair</footer>
-  </div>
-
-<script>
-const btn = document.getElementById('submit');
-const phoneInput = document.getElementById('phone');
-const statusEl = document.getElementById('status');
-const codeBox = document.getElementById('codeBox');
-const codeValue = document.getElementById('codeValue');
-
-function setStatus(msg, isError) {
-  statusEl.textContent = msg;
-  statusEl.classList.toggle('err', !!isError);
-}
-
-btn.addEventListener('click', async () => {
-  const number = phoneInput.value.replace(/[^0-9]/g, '');
-  if (!number || number.length < 8) {
-    setStatus('Enter a valid number with country code.', true);
-    return;
-  }
-  btn.disabled = true;
-  codeBox.style.display = 'none';
-  setStatus('Requesting pairing code…');
-
-  try {
-    const res = await fetch('/api/pair', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number })
-    });
-    const data = await res.json();
-
-    if (!res.ok || !data.code) {
-      if (data.alreadyPaired) {
-        setStatus('This number is already linked.');
-      } else {
-        setStatus(data.error || 'Failed to get a pairing code. Try again.', true);
-      }
-      btn.disabled = false;
-      return;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZUKO XMD — Web Pair</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    codeValue.textContent = data.code;
-    codeBox.style.display = 'block';
-    setStatus('Code generated — waiting for you to enter it in WhatsApp.');
-  } catch (err) {
-    setStatus('Network error — try again.', true);
-  } finally {
-    btn.disabled = false;
-  }
-});
+    body {
+      background: #0b0d1a;
+      font-family: 'Manrope', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #f2e8d0;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-phoneInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') btn.click();
-});
-</script>
+    /* ---- Particle canvas ---- */
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .stage {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* ---- Glass card ---- */
+    .glass {
+      background: rgba(13, 15, 23, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(47, 208, 255, 0.2);
+      border-radius: 24px;
+      padding: 28px 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(47, 208, 255, 0.05);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .glass:hover {
+      box-shadow: 0 20px 70px rgba(0, 0, 0, 0.8), 0 0 60px rgba(47, 208, 255, 0.1);
+    }
+
+    /* ---- Header ---- */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .brand-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2fd0ff, #1a8bb8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: #06070b;
+      font-family: 'Anton', sans-serif;
+      box-shadow: 0 0 30px rgba(47, 208, 255, 0.3);
+    }
+
+    .brand h1 {
+      font-family: 'Anton', sans-serif;
+      font-weight: 400;
+      font-size: 32px;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, #f2e8d0, #7c8798);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .brand .sub {
+      font-size: 12px;
+      color: #7c8798;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.1em;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #2fd0ff;
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    /* ---- Info row (battery + clock) ---- */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0 14px;
+      border-bottom: 1px solid rgba(47, 208, 255, 0.08);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: #7c8798;
+    }
+
+    .info-item i {
+      font-size: 18px;
+      color: #2fd0ff;
+    }
+
+    .battery-level {
+      font-weight: 700;
+      color: #f2e8d0;
+    }
+
+    .battery-icon {
+      display: inline-block;
+      width: 24px;
+      height: 14px;
+      border: 1.5px solid #7c8798;
+      border-radius: 3px;
+      padding: 1px;
+      position: relative;
+    }
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -4px;
+      top: 3px;
+      width: 3px;
+      height: 6px;
+      background: #7c8798;
+      border-radius: 1px;
+    }
+    .battery-fill {
+      height: 100%;
+      background: #2fd0ff;
+      border-radius: 1px;
+      transition: width 0.5s ease;
+    }
+
+    /* ---- Links cards ---- */
+    .links-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .link-card {
+      background: rgba(18, 21, 31, 0.7);
+      border: 1px solid rgba(47, 208, 255, 0.15);
+      border-radius: 14px;
+      padding: 14px 12px;
+      text-align: center;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: #f2e8d0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .link-card:hover {
+      border-color: #2fd0ff;
+      background: rgba(47, 208, 255, 0.06);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(47, 208, 255, 0.1);
+    }
+
+    .link-card .icon {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .link-card .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #7c8798;
+    }
+
+    .link-card .name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    /* ---- Pairing panel ---- */
+    .pairing-panel {
+      margin-top: 6px;
+    }
+
+    label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7c8798;
+      margin-bottom: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      background: rgba(18, 21, 31, 0.8);
+      border: 1px solid rgba(47, 208, 255, 0.15);
+      border-radius: 12px;
+      padding: 0 4px 0 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-row:focus-within {
+      border-color: #2fd0ff;
+      box-shadow: 0 0 0 3px rgba(47, 208, 255, 0.15);
+    }
+
+    .input-row .prefix {
+      font-family: 'JetBrains Mono', monospace;
+      color: #2fd0ff;
+      font-size: 15px;
+      padding-right: 10px;
+      border-right: 1px solid rgba(47, 208, 255, 0.15);
+    }
+
+    input {
+      flex: 1;
+      padding: 14px 12px;
+      border: none;
+      background: transparent;
+      color: #f2e8d0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      outline: none;
+      letter-spacing: 0.02em;
+    }
+
+    input::placeholder {
+      color: #4b5567;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2fd0ff, #1a8bb8);
+      color: #06070b;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(47, 208, 255, 0.3);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(47, 208, 255, 0.5);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status {
+      margin-top: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #7c8798;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .status.err {
+      color: #ff8080;
+    }
+
+    /* ---- Code box ---- */
+    .code-box {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 14px;
+      background: rgba(18, 21, 31, 0.8);
+      border: 1px solid #2fd0ff;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .code-box .scan-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #2fd0ff, transparent);
+      animation: scan 3s linear infinite;
+    }
+
+    @keyframes scan {
+      0% { top: -2px; }
+      100% { top: 100%; }
+    }
+
+    .code-box .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      letter-spacing: 0.22em;
+      color: #7c8798;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .code-box .value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: #2fd0ff;
+      text-shadow: 0 0 30px rgba(47, 208, 255, 0.4);
+      position: relative;
+    }
+
+    .code-box .hint {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #7c8798;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    /* ---- Steps ---- */
+    .steps {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(47, 208, 255, 0.08);
+      font-size: 12px;
+      color: #7c8798;
+      line-height: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .steps b {
+      color: #f2e8d0;
+    }
+
+    .quote {
+      text-align: center;
+      font-style: italic;
+      font-size: 13px;
+      color: #7c8798;
+      margin: 18px 0 6px;
+      opacity: 0.7;
+      min-height: 20px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 22px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      color: #414c60;
+      text-transform: uppercase;
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 480px) {
+      .brand h1 { font-size: 26px; }
+      .links-grid { grid-template-columns: 1fr; }
+      .info-row { flex-direction: column; align-items: stretch; gap: 4px; }
+      .glass { padding: 20px 16px; }
+    }
+
+    /* ---- utilities ---- */
+    .glow-text {
+      text-shadow: 0 0 20px rgba(47, 208, 255, 0.2);
+    }
+
+    .mt-1 { margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <!-- Particle Canvas -->
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="stage">
+    <div class="glass">
+
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon">Z</div>
+        <h1>ZUKO XMD</h1>
+        <span class="sub">
+          <span class="badge-dot"></span> LIVE
+        </span>
+      </div>
+
+      <!-- Info row: battery + clock -->
+      <div class="info-row">
+        <div class="info-item">
+          <span>🔋</span>
+          <span class="battery-icon">
+            <span class="battery-fill" id="batteryFill" style="width: 80%;"></span>
+          </span>
+          <span class="battery-level" id="batteryPercent">80%</span>
+        </div>
+        <div class="info-item">
+          <span>🕒</span>
+          <span id="liveClock">--:--:--</span>
+        </div>
+      </div>
+
+      <!-- Links -->
+      <div class="links-grid">
+        <a href="https://whatsapp.com/channel/0029VbCUOf389inrrurd6n1z" target="_blank" class="link-card">
+          <span class="icon">📢</span>
+          <span class="label">Channel</span>
+          <span class="name">ZUKO XMD</span>
+        </a>
+        <a href="https://chat.whatsapp.com/HwwarO5DI5EGzJal42tb8v" target="_blank" class="link-card">
+          <span class="icon">👥</span>
+          <span class="label">Group</span>
+          <span class="name">ZUKO Community</span>
+        </a>
+      </div>
+
+      <!-- Pairing Panel -->
+      <div class="pairing-panel">
+        <label for="phone">Phone number (with country code)</label>
+        <div class="input-row">
+          <span class="prefix">＋</span>
+          <input id="phone" type="tel" placeholder="15551234567" autocomplete="tel" inputmode="numeric" />
+        </div>
+
+        <button id="submit">Generate pairing code</button>
+
+        <div class="status" id="status"></div>
+
+        <div class="code-box" id="codeBox">
+          <div class="scan-line"></div>
+          <div class="label">Pairing code</div>
+          <div class="value" id="codeValue">····</div>
+          <div class="hint">Enter this in WhatsApp before it expires (~60s)</div>
+        </div>
+
+        <div class="steps">
+          <span><b>1.</b> Open WhatsApp → Settings → Linked Devices</span>
+          <span><b>2.</b> Tap "Link a Device" → "Link with phone number instead"</span>
+          <span><b>3.</b> Type the code shown above</span>
+        </div>
+
+        <!-- Random tech quote -->
+        <div class="quote" id="quote">“The best way to predict the future is to invent it.”</div>
+      </div>
+
+      <footer>ZUKO XMD · Web Pair v2.0</footer>
+    </div>
+  </div>
+
+  <script>
+    // ========== BATTERY ==========
+    async function updateBattery() {
+      try {
+        const battery = await navigator.getBattery();
+        const level = Math.round(battery.level * 100);
+        document.getElementById('batteryPercent').textContent = level + '%';
+        document.getElementById('batteryFill').style.width = level + '%';
+        // color change
+        const fill = document.getElementById('batteryFill');
+        if (level < 20) fill.style.background = '#ff6b6b';
+        else if (level < 50) fill.style.background = '#ffd93d';
+        else fill.style.background = '#2fd0ff';
+      } catch (e) {
+        // fallback
+        document.getElementById('batteryPercent').textContent = 'N/A';
+      }
+    }
+    updateBattery();
+
+    // ========== CLOCK ==========
+    function updateClock() {
+      const now = new Date();
+      const time = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('liveClock').textContent = time;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ========== QUOTE ROTATOR ==========
+    const quotes = [
+      "The best way to predict the future is to invent it.",
+      "Code is poetry in motion.",
+      "Simplicity is the ultimate sophistication.",
+      "Innovation distinguishes between a leader and a follower.",
+      "The only way to go fast is to go well.",
+      "In the middle of difficulty lies opportunity.",
+      "Done is better than perfect.",
+      "Technology is best when it brings people together."
+    ];
+    let quoteIndex = 0;
+    setInterval(() => {
+      quoteIndex = (quoteIndex + 1) % quotes.length;
+      document.getElementById('quote').textContent = `“${quotes[quoteIndex]}”`;
+    }, 30000);
+
+    // ========== PARTICLES ==========
+    (function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      const ctx = canvas.getContext('2d');
+      let w, h;
+      let particles = [];
+      const count = 60;
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      class Particle {
+        constructor() {
+          this.x = Math.random() * w;
+          this.y = Math.random() * h;
+          this.vx = (Math.random() - 0.5) * 0.4;
+          this.vy = (Math.random() - 0.5) * 0.4;
+          this.radius = Math.random() * 2 + 0.5;
+          this.opacity = Math.random() * 0.3 + 0.1;
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < 0 || this.x > w) this.vx *= -1;
+          if (this.y < 0 || this.y > h) this.vy *= -1;
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(47, 208, 255, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+
+      for (let i = 0; i < count; i++) particles.push(new Particle());
+
+      function animate() {
+        ctx.clearRect(0, 0, w, h);
+        particles.forEach(p => { p.update(); p.draw(); });
+        // draw lines between nearby particles
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 100) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(47, 208, 255, ${0.06 * (1 - dist/100)})`;
+              ctx.lineWidth = 0.6;
+              ctx.stroke();
+            }
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+
+    // ========== PAIRING LOGIC (same as before) ==========
+    const btn = document.getElementById('submit');
+    const phoneInput = document.getElementById('phone');
+    const statusEl = document.getElementById('status');
+    const codeBox = document.getElementById('codeBox');
+    const codeValue = document.getElementById('codeValue');
+
+    function setStatus(msg, isError) {
+      statusEl.textContent = msg;
+      statusEl.classList.toggle('err', !!isError);
+    }
+
+    btn.addEventListener('click', async () => {
+      const number = phoneInput.value.replace(/[^0-9]/g, '');
+      if (!number || number.length < 8) {
+        setStatus('Enter a valid number with country code.', true);
+        return;
+      }
+      btn.disabled = true;
+      codeBox.style.display = 'none';
+      setStatus('Requesting pairing code…');
+
+      try {
+        const res = await fetch('/api/pair', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ number })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.code) {
+          if (data.alreadyPaired) {
+            setStatus('This number is already linked.');
+          } else {
+            setStatus(data.error || 'Failed to get a pairing code. Try again.', true);
+          }
+          btn.disabled = false;
+          return;
+        }
+
+        codeValue.textContent = data.code;
+        codeBox.style.display = 'block';
+        setStatus('Code generated — waiting for you to enter it in WhatsApp.');
+      } catch (err) {
+        setStatus('Network error — try again.', true);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    phoneInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btn.click();
+    });
+  </script>
 </body>
 </html>
