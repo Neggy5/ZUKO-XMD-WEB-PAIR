@@ -3211,12 +3211,8 @@ case 'snapdl': {
     }
     break;
 }
-
 // ═══════════════════════════════════════════════════
-// SAVESTATUS - Save, view, and manage status updates
-// ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
-// SAVESTATUS COMMAND (FIXED)
+// SAVESTATUS COMMAND (FULLY FIXED)
 // ═══════════════════════════════════════════════════
 case 'save':
 case 'savestatus':
@@ -3225,34 +3221,16 @@ case 'sstatus': {
     
     const opt = args[0]?.toLowerCase();
     
-    // ─── SAVE STATUS (reply to status) ───
-    if (opt === 'save' || opt === 'status' || (!opt && m.quoted?.key?.remoteJid === 'status@broadcast')) {
-        // Check if replying to a status
-        if (m.quoted?.key?.remoteJid !== 'status@broadcast' && !text.includes('status')) {
-            return reply(
-`📸 *SAVE STATUS*
-━━━━━━━━━━━━━━━━━━━━━━━
-
-📌 *How to use:*
-1. Reply to a status message with:
-   ${prefix}save
-
-2. Or use:
-   ${prefix}save status
-
-📌 *Other commands:*
-${prefix}save list    - View saved statuses
-${prefix}save get <filename> - View a specific status
-${prefix}save delete <filename> - Delete a status
-${prefix}save clear   - Delete all statuses
-
-📸━━━━━━━━━━━━━━━━━━━━━━━`
-            );
+    // ─── CHECK IF REPLYING TO STATUS ───
+    const isReplyingToStatus = m.quoted && m.quoted.key?.remoteJid === 'status@broadcast';
+    
+    // ─── SAVE STATUS (when replying to a status) ───
+    if (isReplyingToStatus || opt === 'save' || opt === 'status') {
+        if (isReplyingToStatus || opt === 'save' || opt === 'status') {
+            // Save the status
+            await handleSaveStatus(empire, m.quoted || m);
+            break;
         }
-        
-        // Save the status
-        await handleSaveStatus(empire, m.quoted || m);
-        break;
     }
     
     // ─── LIST SAVED STATUSES ───
@@ -3471,7 +3449,6 @@ ${prefix}save clear        - Delete all statuses
     );
     break;
 }
-
         // ═══════════════════════════════════════════════════
         // 6. TTS - Text to Speech
         // ═══════════════════════════════════════════════════
