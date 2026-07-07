@@ -660,9 +660,9 @@ if (autoMessageReact && !m.key?.fromMe && m.key?.remoteJid !== 'status@broadcast
 `┌──────────────────┐
 │  🏓  P O N G     │
 ├──────────────────┤
-│  ${latency}ms  ${latency < 100 ? '🚀' : '🐢'}  │
-│  📱 ${waLatency}ms  🧠 ${mem}MB  │
-│  ZUKO-XMD ✅     │
+│  ${latency}ms  ${latency < 100 ? '🚀' : '🐢'}  
+│  📱 ${waLatency}ms  🧠 ${mem}MB  
+│  ZUKO-XMD ✅     
 └──────────────────┘`;
             
             await empire.sendMessage(m.chat, {
