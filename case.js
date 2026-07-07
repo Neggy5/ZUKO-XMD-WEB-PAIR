@@ -588,15 +588,13 @@ module.exports = empire = async (empire, m, chatUpdate, store) => {
 
        
         // ─── BOT MODE CHECK ───
+// ─── BOT MODE CHECK (SILENT) ───
 if (db.botMode?.mode === 'private' && !isCreator) {
     const isWhitelisted = db.botMode.whitelist?.includes(senderPn) || false;
     if (!isWhitelisted) {
         const allowedPublicCmds = ['ping', 'menu', 'help', 'mode', 'owner'];
         if (!allowedPublicCmds.includes(command)) {
-            await empire.sendMessage(m.chat, {
-                text: `🔒 *Bot is in PRIVATE MODE*\n\nOnly the bot owner and whitelisted users can use commands.\n\n📌 *Available commands:*\n${allowedPublicCmds.map(c => `✦ ${prefix}${c}`).join('\n')}`,
-                contextInfo: newsletterContext()
-            }, { quoted: m }).catch(() => {});
+            // SILENTLY IGNORE - NO MESSAGE SENT
             return;
         }
     }
@@ -722,113 +720,142 @@ case 'help': {
   ✦ Mode       : ${db.botMode?.mode || 'public'}
 
 ◈────────────────────────◈
-◇ COMMANDS
+◇ 𝗚𝗘𝗡𝗘𝗥𝗔𝗟 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦
 ◈────────────────────────◈
 
-  ✦ ${prefix}ping           
-  ✦ ${prefix}menu           
-  ✦ ${prefix}sticker        
-  ✦ ${prefix}deepseek <question>  
-  ✦ ${prefix}ds <question>       
-  ✦ ${prefix}play <song>    
-  ✦ ${prefix}ai <question>  
-  ✦ ${prefix}imagine <prompt>  
-  ✦ ${prefix}img <prompt>      
-  ✦ ${prefix}flux <prompt>     
-  ✦ ${prefix}tts <text>     
-  ✦ ${prefix}translate      
-  ✦ ${prefix}tiktok <url>      
-  ✦ ${prefix}toimage        
-  ✦ ${prefix}getpp @user    
-  ✦ ${prefix}apkdl <app>    
-  ✦ ${prefix}apk <app>      
-  ✦ ${prefix}setpp          
-  ✦ ${prefix}toaudio        
-  ✦ ${prefix}togif          
-  ✦ ${prefix}toptt          
+  ✦ ${prefix}ping           ⋮ Latency check
+  ✦ ${prefix}menu           ⋮ This menu
+  ✦ ${prefix}owner          ⋮ Contact owner
+  ✦ ${prefix}mode           ⋮ Public/Private mode
+  ✦ ${prefix}mode add @user ⋮ Whitelist user
+  ✦ ${prefix}mode remove @user ⋮ Remove from whitelist
 
 ◈────────────────────────◈
-◇ FOOTBALL LIVESCORES 
+◇ 𝗔𝗜 & 𝗠𝗘𝗗𝗜𝗔
 ◈────────────────────────◈
 
-✦ ${prefix}football        
-✦ ${prefix}football live  
-✦ ${prefix}football today 
-✦ ${prefix}football search <team> 
-✦ ${prefix}football stats 
+  ✦ ${prefix}ai <question>  ⋮ AI chat (Gemini)
+  ✦ ${prefix}deepseek <question> ⋮ DeepSeek AI
+  ✦ ${prefix}ds <question>  ⋮ DeepSeek AI (shortcut)
+  ✦ ${prefix}imagine <prompt> ⋮ Generate AI image
+  ✦ ${prefix}img <prompt>   ⋮ Generate image (shortcut)
+  ✦ ${prefix}flux <prompt>  ⋮ Generate with Flux
+  ✦ ${prefix}tts <text>     ⋮ Text to speech
+  ✦ ${prefix}translate      ⋮ Translate text
 
 ◈────────────────────────◈
-◇ PROTECTIONS
+◇ 𝗠𝗨𝗦𝗜𝗖 & 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗦
 ◈────────────────────────◈
 
-  ✦ ${prefix}antilink       
-  ✦ ${prefix}antisticker    
-  ✦ ${prefix}antitag        
-  ✦ ${prefix}antiviewonce   
-  ✦ ${prefix}anticall       
-  ✦ ${prefix}antidelete     
-  ✦ ${prefix}antibot        
+  ✦ ${prefix}play <song>    ⋮ Download audio
+  ✦ ${prefix}ytvideo <url>  ⋮ Download YouTube video
+  ✦ ${prefix}ytmp4 <url>    ⋮ Download YouTube video
+  ✦ ${prefix}tiktok <url>   ⋮ Download TikTok
+  ✦ ${prefix}ttsearch <query> ⋮ Search TikTok
+  ✦ ${prefix}tts <query>    ⋮ Search TikTok (shortcut)
+  ✦ ${prefix}fb <url>       ⋮ Download Facebook
+  ✦ ${prefix}ig <url>       ⋮ Download Instagram
+  ✦ ${prefix}tw <url>       ⋮ Download Twitter/X
+  ✦ ${prefix}snap <url>     ⋮ Download Snapchat
+  ✦ ${prefix}aiodl <url>    ⋮ Universal downloader
+  ✦ ${prefix}lyrics <song>  ⋮ Search song lyrics
+  ✦ ${prefix}apkdl <app>    ⋮ Download APK
 
 ◈────────────────────────◈
-◇ GROUP MANAGEMENT 
+◇ 𝗦𝗧𝗜𝗖𝗞𝗘𝗥 & 𝗜𝗠𝗔𝗚𝗘 𝗧𝗢𝗢𝗟𝗦
 ◈────────────────────────◈
 
-  ✦ ${prefix}tagall <msg>   
-  ✦ ${prefix}groupinfo      
-  ✦ ${prefix}promote @user  
-  ✦ ${prefix}demote @user   
-  ✦ ${prefix}kick @user     
-  ✦ ${prefix}jail @user     
-  ✦ ${prefix}unjail @user   
-  ✦ ${prefix}welcome        
-  ✦ ${prefix}setgcname <name>  
-  ✦ ${prefix}gcdescription <desc> 
-  ✦ ${prefix}resetlink       
-  ✦ ${prefix}setmenuimage     
-  ✦ ${prefix}setbotname <name> 
-  ✦ ${prefix}goodbye        
+  ✦ ${prefix}sticker        ⋮ Img/vid → sticker
+  ✦ ${prefix}toimage        ⋮ Sticker → image
+  ✦ ${prefix}toaudio        ⋮ Video → audio
+  ✦ ${prefix}togif          ⋮ Video/sticker → GIF
+  ✦ ${prefix}toptt          ⋮ Video/audio → voice note
+  ✦ ${prefix}getpp @user    ⋮ Get profile picture
+  ✦ ${prefix}setpp          ⋮ Set bot PP (Owner)
+  ✦ ${prefix}tgsticker <url> ⋮ Download Telegram sticker
+  ✦ ${prefix}tgs <url>      ⋮ Download Telegram sticker
 
 ◈────────────────────────◈
-◇ MISC
+◇ 𝗙𝗢𝗢𝗧𝗕𝗔𝗟𝗟 𝗟𝗜𝗩𝗘𝗦𝗖𝗢𝗥𝗘𝗦
 ◈────────────────────────◈
-  ✦ ${prefix}mode           
-  ✦ ${prefix}mode add @user
-  ✦ ${prefix}mode remove @user 
-  ✦ ${prefix}balance        
-  ✦ ${prefix}owner 
-  ✦ ${prefix}viewonce           
-  ✦ ${prefix}autoreact     
-  ✦ ${prefix}idch <link>
-  ✦ ${prefix}savestatus
-  ✦ ${prefix}fb <url>      
-  ✦ ${prefix}ig <url>      
-  ✦ ${prefix}tw <url>       
-  ✦ ${prefix}snap <url>    
-  ✦ ${prefix}gif <category>  
-  ✦ ${prefix}hug @user       
-  ✦ ${prefix}kiss @user      
-  ✦ ${prefix}slap @user      
-  ✦ ${prefix}punch @user     
-  ✦ ${prefix}kick @user      
-  ✦ ${prefix}cuddle @user    
-  ✦ ${prefix}pat @user       
-  ✦ ${prefix}poke @user      
-  ✦ ${prefix}blush           
-  ✦ ${prefix}cry             
-  ✦ ${prefix}happy          
-  ✦ ${prefix}dance           
-  ✦ ${prefix}smile           
-  ✦ ${prefix}laugh           
-  ✦ ${prefix}wave @user      
-  ✦ ${prefix}wink @user      
-  ✦ ${prefix}yeet            
-  ✦ ${prefix}bonk @user      
-  ✦ ${prefix}love @user     
-  ✦ ${prefix}angry @user     
-  ✦ ${prefix}think           
-  ✦ ${prefix}cool            
-  ✦ ${prefix}celebrate       
-  
+
+  ✦ ${prefix}football       ⋮ All matches
+  ✦ ${prefix}football live  ⋮ Live matches only
+  ✦ ${prefix}football today ⋮ Today's matches
+  ✦ ${prefix}football search <team> ⋮ Search team
+  ✦ ${prefix}football stats ⋮ Match statistics
+
+◈────────────────────────◈
+◇ 𝗚𝗜𝗙 𝗥𝗘𝗔𝗖𝗧𝗜𝗢𝗡𝗦
+◈────────────────────────◈
+
+  ✦ ${prefix}gif <category> ⋮ Reaction GIF
+  ✦ ${prefix}hug @user      ⋮ Hug someone 🤗
+  ✦ ${prefix}kiss @user     ⋮ Kiss someone 😘
+  ✦ ${prefix}slap @user     ⋮ Slap someone 👋
+  ✦ ${prefix}punch @user    ⋮ Punch someone 👊
+  ✦ ${prefix}kick @user     ⋮ Kick someone 🦵
+  ✦ ${prefix}cuddle @user   ⋮ Cuddle someone 🫂
+  ✦ ${prefix}pat @user      ⋮ Pat someone 🫳
+  ✦ ${prefix}poke @user     ⋮ Poke someone 👉
+  ✦ ${prefix}blush          ⋮ Blush 😳
+  ✦ ${prefix}cry            ⋮ Cry 😭
+  ✦ ${prefix}happy          ⋮ Happy 😊
+  ✦ ${prefix}dance          ⋮ Dance 💃
+  ✦ ${prefix}smile          ⋮ Smile 😊
+  ✦ ${prefix}laugh          ⋮ Laugh 😂
+  ✦ ${prefix}wave @user     ⋮ Wave 👋
+  ✦ ${prefix}wink @user     ⋮ Wink 😉
+  ✦ ${prefix}yeet           ⋮ Yeet 🚀
+  ✦ ${prefix}bonk @user     ⋮ Bonk 🔨
+  ✦ ${prefix}love @user     ⋮ Love ❤️
+  ✦ ${prefix}angry @user    ⋮ Angry 😡
+  ✦ ${prefix}think          ⋮ Think 🤔
+  ✦ ${prefix}cool           ⋮ Cool 😎
+  ✦ ${prefix}celebrate      ⋮ Celebrate 🎉
+
+◈────────────────────────◈
+◇ 𝗣𝗥𝗢𝗧𝗘𝗖𝗧𝗜𝗢𝗡𝗦
+◈────────────────────────◈
+
+  ✦ ${prefix}antilink       ⋮ Block links
+  ✦ ${prefix}antisticker    ⋮ Block stickers
+  ✦ ${prefix}antitag        ⋮ Block tagging
+  ✦ ${prefix}antiviewonce   ⋮ Reveal view-once
+  ✦ ${prefix}anticall       ⋮ Reject calls
+  ✦ ${prefix}antidelete     ⋮ Log deletions
+  ✦ ${prefix}antibot        ⋮ Auto-kick bots
+
+◈────────────────────────◈
+◇ 𝗚𝗥𝗢𝗨𝗣 𝗠𝗔𝗡𝗔𝗚𝗘𝗠𝗘𝗡𝗧
+◈────────────────────────◈
+
+  ✦ ${prefix}tagall <msg>   ⋮ Tag everyone
+  ✦ ${prefix}groupinfo      ⋮ Group details
+  ✦ ${prefix}promote @user  ⋮ Make admin
+  ✦ ${prefix}demote @user   ⋮ Remove admin
+  ✦ ${prefix}kick @user     ⋮ Remove member
+  ✦ ${prefix}jail @user     ⋮ Restrict user
+  ✦ ${prefix}unjail @user   ⋮ Release user
+  ✦ ${prefix}welcome        ⋮ Toggle welcome
+  ✦ ${prefix}goodbye        ⋮ Toggle goodbye
+  ✦ ${prefix}setgcname <name> ⋮ Set group name
+  ✦ ${prefix}gcdescription <desc> ⋮ Set description
+  ✦ ${prefix}resetlink      ⋮ Reset invite link
+
+◈────────────────────────◈
+◇ 𝗠𝗜𝗦𝗖
+◈────────────────────────◈
+
+  ✦ ${prefix}balance        ⋮ Check coins
+  ✦ ${prefix}viewonce       ⋮ Reveal view-once (Owner)
+  ✦ ${prefix}autoreact      ⋮ Toggle auto-react
+  ✦ ${prefix}savestatus     ⋮ Save status (Owner)
+  ✦ ${prefix}save           ⋮ Save status (shortcut)
+  ✦ ${prefix}idch <link>    ⋮ Get channel ID
+  ✦ ${prefix}setmenuimage   ⋮ Set menu banner (Owner)
+  ✦ ${prefix}setbotname <name> ⋮ Set bot name (Owner)
+
 ◈─────────────────────────────◈
     💎  ZUKO XMD  🥷 DEV ZUKO
 ◈─────────────────────────────◈
@@ -1097,16 +1124,7 @@ case 'downloadapk': {
     }
     break;
 }
-// ═══════════════════════════════════════════════════
-// GIF REACTION COMMANDS
-// ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
-// GIF REACTION COMMANDS (FIXED)
-// ═══════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════
-// BOT MODE - Public / Private
-// ═══════════════════════════════════════════════════
 case 'mode':
 case 'botmode':
 case 'setmode': {
@@ -1360,11 +1378,7 @@ case 'img': {
     }
     break;
 }
-
-// ═══════════════════════════════════════════════════
-// GETPP - Get profile picture
-// ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
+//═══════════════════════════════════════════════════
 // GETPP - Get profile picture (FIXED)
 // ═══════════════════════════════════════════════════
 case 'getpp':
@@ -1679,7 +1693,1395 @@ case 'setdescription': {
     }
     break;
 }
+case 'ig':
+case 'instagram':
+case 'igdl': {
+    if (!text) return reply(`📱 Usage: ${prefix}ig <instagram_url>\nExample: ${prefix}ig https://www.instagram.com/p/CxYz123ABC/`);
+    
+    if (!text.includes('instagram.com') && !text.includes('instagr.am')) {
+        return reply('❌ Please provide a valid Instagram post/reel URL.');
+    }
+    
+    await reply('📥 *Processing Instagram media...* Please wait.');
+    
+    try {
+        // ─── TRY PRINCE TECHNO API ───
+        let videoUrl = null;
+        let imageUrls = [];
+        let title = 'Instagram Media';
+        let usedApi = '';
+        
+        try {
+            const apiUrl = `https://api.princetechn.com/api/download/igdl?apikey=prince&url=${encodeURIComponent(text)}`;
+            const response = await axios.get(apiUrl, { 
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            
+            if (response.data?.success && response.data?.result) {
+                const result = response.data.result;
+                if (result.video) {
+                    videoUrl = result.video;
+                } else if (result.images && Array.isArray(result.images)) {
+                    imageUrls = result.images;
+                } else if (result.url) {
+                    if (result.url.includes('.mp4')) {
+                        videoUrl = result.url;
+                    } else {
+                        imageUrls = [result.url];
+                    }
+                }
+                title = result.title || result.caption || 'Instagram Media';
+                usedApi = 'Prince Techno';
+                console.log('✅ Instagram: Prince Techno API succeeded');
+            }
+        } catch (e) {
+            console.log('❌ Instagram: Prince Techno API failed:', e.message);
+        }
+        
+        // ─── FALLBACK: SIPUTZX API ───
+        if (!videoUrl && imageUrls.length === 0) {
+            try {
+                const response = await axios.get(
+                    `https://api.siputzx.my.id/api/d/igdl?url=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.data) {
+                    const data = response.data.data;
+                    if (data.urls && Array.isArray(data.urls)) {
+                        const firstUrl = data.urls[0];
+                        if (firstUrl && (firstUrl.includes('.mp4') || firstUrl.includes('video'))) {
+                            videoUrl = firstUrl;
+                        } else {
+                            imageUrls = data.urls;
+                        }
+                    } else if (data.video) {
+                        videoUrl = data.video;
+                    } else if (data.url) {
+                        if (data.url.includes('.mp4')) {
+                            videoUrl = data.url;
+                        } else {
+                            imageUrls = [data.url];
+                        }
+                    }
+                    title = data.title || data.caption || 'Instagram Media';
+                    usedApi = 'Siputzx API';
+                    console.log('✅ Instagram: Siputzx API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Instagram: Siputzx API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK: SHIZO API ───
+        if (!videoUrl && imageUrls.length === 0) {
+            try {
+                const response = await axios.get(
+                    `https://api.shizo.top/downloader/ig?apikey=shizo&url=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.result) {
+                    const result = response.data.result;
+                    if (result.video) {
+                        videoUrl = result.video;
+                    } else if (result.images && Array.isArray(result.images)) {
+                        imageUrls = result.images;
+                    }
+                    title = result.title || 'Instagram Media';
+                    usedApi = 'Shizo API';
+                    console.log('✅ Instagram: Shizo API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Instagram: Shizo API failed:', e.message);
+            }
+        }
+        
+        if (!videoUrl && imageUrls.length === 0) {
+            return reply('❌ Failed to download Instagram media. The post may be private or unavailable.');
+        }
+        
+        // ─── SEND VIDEO ───
+        if (videoUrl) {
+            await empire.sendMessage(m.chat, {
+                video: { url: videoUrl },
+                caption: `📹 *${title}*\n\n🔗 *Source:* ${text}\n📡 *API:* ${usedApi}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        }
+        
+        // ─── SEND IMAGES ───
+        if (imageUrls.length > 0) {
+            const totalImages = Math.min(imageUrls.length, 15);
+            for (let i = 0; i < totalImages; i++) {
+                const imgUrl = imageUrls[i];
+                if (imgUrl) {
+                    const caption = i === 0 ? 
+                        `🖼️ *${title}*\n📸 ${i+1}/${totalImages}\n🔗 *Source:* ${text}\n📡 *API:* ${usedApi}` :
+                        `📸 ${i+1}/${totalImages}`;
+                    await empire.sendMessage(m.chat, {
+                        image: { url: imgUrl },
+                        caption: caption,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                    await delay(500);
+                }
+            }
+        }
+        
+    } catch (e) {
+        console.error('Instagram download error:', e);
+        reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
+case 'tw':
+case 'twitter':
+case 'x':
+case 'xdl':
+case 'twitterdl': {
+    if (!text) return reply(`📱 Usage: ${prefix}tw <twitter_url>\nExample: ${prefix}tw https://twitter.com/user/status/123456789`);
+    
+    if (!text.includes('twitter.com') && !text.includes('x.com')) {
+        return reply('❌ Please provide a valid Twitter/X post URL.');
+    }
+    
+    await reply('📥 *Processing Twitter/X media...* Please wait.');
+    
+    try {
+        let videoUrl = null;
+        let imageUrls = [];
+        let title = 'Twitter Media';
+        let usedApi = '';
+        
+        // ─── TRY PRINCE TECHNO API ───
+        try {
+            const apiUrl = `https://api.princetechn.com/api/download/twitterdl?apikey=prince&url=${encodeURIComponent(text)}`;
+            const response = await axios.get(apiUrl, { 
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            
+            if (response.data?.success && response.data?.result) {
+                const result = response.data.result;
+                if (result.video) {
+                    videoUrl = result.video;
+                } else if (result.images && Array.isArray(result.images)) {
+                    imageUrls = result.images;
+                } else if (result.url) {
+                    if (result.url.includes('.mp4')) {
+                        videoUrl = result.url;
+                    } else {
+                        imageUrls = [result.url];
+                    }
+                }
+                title = result.title || result.caption || 'Twitter Media';
+                usedApi = 'Prince Techno';
+                console.log('✅ Twitter: Prince Techno API succeeded');
+            }
+        } catch (e) {
+            console.log('❌ Twitter: Prince Techno API failed:', e.message);
+        }
+        
+        // ─── FALLBACK: SIPUTZX API ───
+        if (!videoUrl && imageUrls.length === 0) {
+            try {
+                const response = await axios.get(
+                    `https://api.siputzx.my.id/api/d/twitter?url=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.data) {
+                    const data = response.data.data;
+                    if (data.video) {
+                        videoUrl = data.video;
+                    } else if (data.images && Array.isArray(data.images)) {
+                        imageUrls = data.images;
+                    } else if (data.url) {
+                        if (data.url.includes('.mp4') || data.url.includes('video')) {
+                            videoUrl = data.url;
+                        } else {
+                            imageUrls = [data.url];
+                        }
+                    }
+                    title = data.title || data.caption || 'Twitter Media';
+                    usedApi = 'Siputzx API';
+                    console.log('✅ Twitter: Siputzx API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Twitter: Siputzx API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK: SHIZO API ───
+        if (!videoUrl && imageUrls.length === 0) {
+            try {
+                const response = await axios.get(
+                    `https://api.shizo.top/downloader/twitter?apikey=shizo&url=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.result) {
+                    const result = response.data.result;
+                    if (result.video) {
+                        videoUrl = result.video;
+                    } else if (result.images && Array.isArray(result.images)) {
+                        imageUrls = result.images;
+                    }
+                    title = result.title || 'Twitter Media';
+                    usedApi = 'Shizo API';
+                    console.log('✅ Twitter: Shizo API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Twitter: Shizo API failed:', e.message);
+            }
+        }
+        
+        if (!videoUrl && imageUrls.length === 0) {
+            return reply('❌ Failed to download Twitter/X media. The post may be private or unavailable.');
+        }
+        
+        // ─── SEND VIDEO ───
+        if (videoUrl) {
+            await empire.sendMessage(m.chat, {
+                video: { url: videoUrl },
+                caption: `📹 *${title}*\n\n🔗 *Source:* ${text}\n📡 *API:* ${usedApi}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        }
+        
+        // ─── SEND IMAGES ───
+        if (imageUrls.length > 0) {
+            const totalImages = Math.min(imageUrls.length, 15);
+            for (let i = 0; i < totalImages; i++) {
+                const imgUrl = imageUrls[i];
+                if (imgUrl) {
+                    const caption = i === 0 ? 
+                        `🖼️ *${title}*\n📸 ${i+1}/${totalImages}\n🔗 *Source:* ${text}\n📡 *API:* ${usedApi}` :
+                        `📸 ${i+1}/${totalImages}`;
+                    await empire.sendMessage(m.chat, {
+                        image: { url: imgUrl },
+                        caption: caption,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                    await delay(500);
+                }
+            }
+        }
+        
+    } catch (e) {
+        console.error('Twitter download error:', e);
+        reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
+case 'snap':
+case 'snapchat':
+case 'sc':
+case 'snapdl': {
+    if (!text) return reply(`📱 Usage: ${prefix}snap <snapchat_url>\nExample: ${prefix}snap https://www.snapchat.com/link/123456789`);
+    
+    if (!text.includes('snapchat.com')) {
+        return reply('❌ Please provide a valid Snapchat URL.');
+    }
+    
+    await reply('📥 *Processing Snapchat media...* Please wait.');
+    
+    try {
+        let videoUrl = null;
+        let imageUrl = null;
+        let title = 'Snapchat Media';
+        let usedApi = '';
+        
+        // ─── TRY PRINCE TECHNO API ───
+        try {
+            const apiUrl = `https://api.princetechn.com/api/download/snapdl?apikey=prince&url=${encodeURIComponent(text)}`;
+            const response = await axios.get(apiUrl, { 
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            
+            if (response.data?.success && response.data?.result) {
+                const result = response.data.result;
+                if (result.video) {
+                    videoUrl = result.video;
+                } else if (result.image) {
+                    imageUrl = result.image;
+                } else if (result.url) {
+                    if (result.url.includes('.mp4')) {
+                        videoUrl = result.url;
+                    } else {
+                        imageUrl = result.url;
+                    }
+                }
+                title = result.title || 'Snapchat Media';
+                usedApi = 'Prince Techno';
+                console.log('✅ Snapchat: Prince Techno API succeeded');
+            }
+        } catch (e) {
+            console.log('❌ Snapchat: Prince Techno API failed:', e.message);
+        }
+        
+        // ─── FALLBACK: SHIZO API ───
+        if (!videoUrl && !imageUrl) {
+            try {
+                const response = await axios.get(
+                    `https://api.shizo.top/downloader/snapchat?apikey=shizo&url=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.result) {
+                    const result = response.data.result;
+                    if (result.video) {
+                        videoUrl = result.video;
+                    } else if (result.image) {
+                        imageUrl = result.image;
+                    } else if (result.url) {
+                        if (result.url.includes('.mp4')) {
+                            videoUrl = result.url;
+                        } else {
+                            imageUrl = result.url;
+                        }
+                    }
+                    title = result.title || 'Snapchat Media';
+                    usedApi = 'Shizo API';
+                    console.log('✅ Snapchat: Shizo API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Snapchat: Shizo API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK: SIPUTZX API ───
+        if (!videoUrl && !imageUrl) {
+            try {
+                const response = await axios.get(
+                    `https://api.siputzx.my.id/api/d/snapdl?url=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.data) {
+                    const data = response.data.data;
+                    if (data.video) {
+                        videoUrl = data.video;
+                    } else if (data.image) {
+                        imageUrl = data.image;
+                    }
+                    title = data.title || 'Snapchat Media';
+                    usedApi = 'Siputzx API';
+                    console.log('✅ Snapchat: Siputzx API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Snapchat: Siputzx API failed:', e.message);
+            }
+        }
+        
+        if (!videoUrl && !imageUrl) {
+            return reply('❌ Failed to download Snapchat media. The content may be private or expired.');
+        }
+        
+        // ─── SEND VIDEO ───
+        if (videoUrl) {
+            await empire.sendMessage(m.chat, {
+                video: { url: videoUrl },
+                caption: `📹 *${title}*\n\n🔗 *Source:* ${text}\n📡 *API:* ${usedApi}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        }
+        
+        // ─── SEND IMAGE ───
+        if (imageUrl) {
+            await empire.sendMessage(m.chat, {
+                image: { url: imageUrl },
+                caption: `🖼️ *${title}*\n\n🔗 *Source:* ${text}\n📡 *API:* ${usedApi}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        }
+        
+    } catch (e) {
+        console.error('Snapchat download error:', e);
+        reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// AIO DOWNLOAD COMMAND - Universal Media Downloader
+// ═══════════════════════════════════════════════════
+case 'aiodl':
+case 'aio':
+case 'download':
+case 'dl': {
+    if (!text) return reply(`📥 Usage: ${prefix}aiodl <link>\nExample: ${prefix}aiodl https://www.facebook.com/reel/123456789`);
+    
+    const url = text.trim();
+    await reply('⏳ *Processing link via AIO downloader...* Please wait.');
+    
+    try {
+        let videoUrl = null;
+        let audioUrl = null;
+        let imageUrls = [];
+        let title = 'Media';
+        let usedApi = '';
+        
+        // ─── TRY PRINCE TECHNO API (Primary) ───
+        try {
+            const apiUrl = `https://api.princetechn.com/api/download/aiodl?apikey=prince&url=${encodeURIComponent(url)}`;
+            const response = await axios.get(apiUrl, { 
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            
+            if (response.data?.success && response.data?.result) {
+                const result = response.data.result;
+                // Extract video
+                if (result.video) {
+                    videoUrl = result.video;
+                } else if (result.videos && Array.isArray(result.videos)) {
+                    videoUrl = result.videos[0];
+                }
+                // Extract audio
+                if (result.audio) {
+                    audioUrl = result.audio;
+                } else if (result.music) {
+                    audioUrl = result.music;
+                }
+                // Extract images
+                if (result.images && Array.isArray(result.images)) {
+                    imageUrls = result.images;
+                } else if (result.image) {
+                    if (Array.isArray(result.image)) {
+                        imageUrls = result.image;
+                    } else {
+                        imageUrls = [result.image];
+                    }
+                }
+                // Extract title
+                title = result.title || result.caption || 'Media';
+                usedApi = 'Prince Techno';
+                console.log('✅ AIODL: Prince Techno API succeeded');
+            }
+        } catch (e) {
+            console.log('❌ AIODL: Prince Techno API failed:', e.message);
+        }
+        
+        // ─── FALLBACK 1: SIPUTZX API ───
+        if (!videoUrl && imageUrls.length === 0) {
+            try {
+                const response = await axios.get(
+                    `https://api.siputzx.my.id/api/d/aio?url=${encodeURIComponent(url)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.data) {
+                    const data = response.data.data;
+                    if (data.video) {
+                        videoUrl = data.video;
+                    } else if (data.videos && Array.isArray(data.videos)) {
+                        videoUrl = data.videos[0];
+                    }
+                    if (data.audio) {
+                        audioUrl = data.audio;
+                    }
+                    if (data.images && Array.isArray(data.images)) {
+                        imageUrls = data.images;
+                    } else if (data.image) {
+                        imageUrls = [data.image];
+                    }
+                    title = data.title || data.caption || 'Media';
+                    usedApi = 'Siputzx API';
+                    console.log('✅ AIODL: Siputzx API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ AIODL: Siputzx API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK 2: SHIZO API ───
+        if (!videoUrl && imageUrls.length === 0) {
+            try {
+                const response = await axios.get(
+                    `https://api.shizo.top/downloader/aio?apikey=shizo&url=${encodeURIComponent(url)}`,
+                    { timeout: 30000 }
+                );
+                if (response.data?.status && response.data?.result) {
+                    const result = response.data.result;
+                    if (result.video) {
+                        videoUrl = result.video;
+                    } else if (result.videos && Array.isArray(result.videos)) {
+                        videoUrl = result.videos[0];
+                    }
+                    if (result.audio) {
+                        audioUrl = result.audio;
+                    }
+                    if (result.images && Array.isArray(result.images)) {
+                        imageUrls = result.images;
+                    } else if (result.image) {
+                        imageUrls = [result.image];
+                    }
+                    title = result.title || result.caption || 'Media';
+                    usedApi = 'Shizo API';
+                    console.log('✅ AIODL: Shizo API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ AIODL: Shizo API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK 3: MALVRYX API ───
+        if (!videoUrl && imageUrls.length === 0) {
+            try {
+                const response = await axios.get(
+                    `https://apis.malvryx.dev/api/downloader/aio?url=${encodeURIComponent(url)}`,
+                    { 
+                        timeout: 30000,
+                        headers: { 'X-API-Key': 'mlvx_free_15c210e6c0fed4d5d90d556c0bebd068480f03740106d0d3c8189362089ac986' }
+                    }
+                );
+                if (response.data?.status && response.data?.result) {
+                    const result = response.data.result;
+                    if (result.video) {
+                        videoUrl = result.video;
+                    } else if (result.videos && Array.isArray(result.videos)) {
+                        videoUrl = result.videos[0];
+                    }
+                    if (result.audio) {
+                        audioUrl = result.audio;
+                    }
+                    if (result.images && Array.isArray(result.images)) {
+                        imageUrls = result.images;
+                    } else if (result.image) {
+                        imageUrls = [result.image];
+                    }
+                    title = result.title || result.caption || 'Media';
+                    usedApi = 'Malvryx API';
+                    console.log('✅ AIODL: Malvryx API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ AIODL: Malvryx API failed:', e.message);
+            }
+        }
+        
+        // ─── CHECK IF ANYTHING WAS FOUND ───
+        if (!videoUrl && imageUrls.length === 0) {
+            return reply('❌ No downloadable media found. The link may be unsupported or private.');
+        }
+        
+        // ─── SEND VIDEO ───
+        if (videoUrl) {
+            try {
+                // Try to download and send the video
+                const videoResponse = await axios.get(videoUrl, {
+                    responseType: 'arraybuffer',
+                    timeout: 120000
+                });
+                const videoBuffer = Buffer.from(videoResponse.data);
+                
+                if (videoBuffer && videoBuffer.length > 1000) {
+                    await empire.sendMessage(m.chat, {
+                        video: videoBuffer,
+                        caption: `📹 *${title}*\n\n🔗 *Source:* ${url}\n📡 *API:* ${usedApi}`,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                } else {
+                    // Fallback: send video as document
+                    await empire.sendMessage(m.chat, {
+                        document: videoBuffer,
+                        mimetype: 'video/mp4',
+                        fileName: `${title}.mp4`,
+                        caption: `📹 *${title}*\n\n🔗 *Source:* ${url}`,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                }
+            } catch (e) {
+                // If download fails, send as URL
+                await empire.sendMessage(m.chat, {
+                    video: { url: videoUrl },
+                    caption: `📹 *${title}*\n\n🔗 *Source:* ${url}\n📡 *API:* ${usedApi}`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            }
+        }
+        
+        // ─── SEND IMAGES ───
+        if (imageUrls.length > 0) {
+            const totalImages = Math.min(imageUrls.length, 15);
+            for (let i = 0; i < totalImages; i++) {
+                const imgUrl = imageUrls[i];
+                if (imgUrl) {
+                    const caption = i === 0 ? 
+                        `🖼️ *${title}*\n📸 ${i+1}/${totalImages}\n🔗 *Source:* ${url}\n📡 *API:* ${usedApi}` :
+                        `📸 ${i+1}/${totalImages}`;
+                    await empire.sendMessage(m.chat, {
+                        image: { url: imgUrl },
+                        caption: caption,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                    await delay(500);
+                }
+            }
+        }
+        
+        // ─── SEND AUDIO ───
+        if (audioUrl) {
+            try {
+                await empire.sendMessage(m.chat, {
+                    audio: { url: audioUrl },
+                    mimetype: 'audio/mpeg',
+                    fileName: `${title}.mp3`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            } catch (e) {
+                console.log('Audio send failed:', e.message);
+            }
+        }
+        
+    } catch (e) {
+        console.error('AIO download error:', e);
+        if (e.code === 'ECONNABORTED') {
+            reply(`❌ *Request timed out.* The server took too long to respond.`);
+        } else {
+            reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
+        }
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// YOUTUBE VIDEO DOWNLOAD COMMAND
+// ═══════════════════════════════════════════════════
+case 'ytvideo':
+case 'ytmp4':
+case 'youtube':
+case 'ytv': {
+    if (!text) return reply(`🎬 Usage: ${prefix}ytvideo <url> [quality]\nExample: ${prefix}ytvideo https://youtu.be/60ItHLz5WEA\nExample: ${prefix}ytvideo https://youtu.be/60ItHLz5WEA 720\n\n📌 *Qualities:* 720p, 1080p`);
+    
+    // ─── PARSE URL AND QUALITY ───
+    let url = text.trim();
+    let quality = '720'; // Default quality
+    
+    // Check if quality is specified
+    const qualityMatch = url.match(/\b(720|1080|480|360)\b/);
+    if (qualityMatch) {
+        quality = qualityMatch[1];
+        url = url.replace(qualityMatch[0], '').trim();
+    }
+    
+    // Check if URL is valid
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+        return reply('❌ Please provide a valid YouTube URL.');
+    }
+    
+    await reply(`📥 *Processing YouTube video...* Quality: ${quality}p`);
+    
+    try {
+        // ─── CALL PRINCE TECHNO YT VIDEO API ───
+        const apiUrl = `https://api.princetechn.com/api/download/ytvideo?apikey=prince&quality=${quality}&url=${encodeURIComponent(url)}`;
+        const response = await axios.get(apiUrl, { 
+            timeout: 60000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (!response.data?.success || !response.data?.result) {
+            return reply('❌ Failed to fetch YouTube video. The video may be unavailable or private.');
+        }
+        
+        const result = response.data.result;
+        const videoUrl = result.download_url;
+        const title = result.title || 'YouTube Video';
+        const thumbnail = result.thumbnail;
+        const videoQuality = result.quality || quality + 'p';
+        const availableQualities = result.available_qualities || [];
+        
+        if (!videoUrl) {
+            return reply('❌ No download URL found. Try a different quality or video.');
+        }
+        
+        // ─── SEND THUMBNAIL WITH INFO ───
+        if (thumbnail) {
+            try {
+                await empire.sendMessage(m.chat, {
+                    image: { url: thumbnail },
+                    caption: `🎬 *${title}*\n\n📊 *Quality:* ${videoQuality}\n📥 *Downloading video...*`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            } catch (e) {}
+        }
+        
+        // ─── DOWNLOAD VIDEO ───
+        await reply(`⏳ *Downloading ${title}...*`);
+        
+        const videoResponse = await axios.get(videoUrl, {
+            responseType: 'arraybuffer',
+            timeout: 180000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': '*/*'
+            }
+        });
+        
+        let videoBuffer = Buffer.from(videoResponse.data);
+        
+        if (!videoBuffer || videoBuffer.length < 1000) {
+            return reply('❌ Failed to download video. The file may be corrupted.');
+        }
+        
+        const fileSizeMB = (videoBuffer.length / 1024 / 1024).toFixed(1);
+        
+        // ─── BUILD CAPTION ───
+        let caption = 
+`🎬━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎬
+        ✦  YOUTUBE VIDEO  ✦
+🎬━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎬
 
+📝 *Title:* ${title}
+📊 *Quality:* ${videoQuality}
+📦 *Size:* ${fileSizeMB} MB
+📡 *API:* Prince Techno`;
+
+        if (availableQualities.length > 0) {
+            caption += `\n📌 *Available:* ${availableQualities.join(', ')}`;
+        }
+
+        caption += `\n🎬━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎬
+💡 *Change quality:* ${prefix}ytvideo <url> <quality>`;
+
+        // ─── SEND VIDEO ───
+        try {
+            await empire.sendMessage(m.chat, {
+                video: videoBuffer,
+                caption: caption,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+            console.log(`✅ YouTube video sent: ${title} (${videoQuality})`);
+            
+        } catch (sendErr) {
+            console.error('Send error:', sendErr);
+            
+            // ─── FALLBACK: Send as document ───
+            try {
+                await empire.sendMessage(m.chat, {
+                    document: videoBuffer,
+                    mimetype: 'video/mp4',
+                    fileName: `${title}.mp4`,
+                    caption: caption,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+                
+                console.log(`✅ Video sent as document: ${title}`);
+            } catch (docErr) {
+                // ─── FINAL FALLBACK: Send link only ───
+                await empire.sendMessage(m.chat, {
+                    text: `🎬 *${title}*\n\n📊 Quality: ${videoQuality}\n📦 Size: ${fileSizeMB} MB\n\n⚠️ *File too large to send directly.*\n\n🔗 *Download Link:*\n${videoUrl}`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            }
+        }
+        
+    } catch (e) {
+        console.error('YouTube video download error:', e);
+        
+        // ─── HANDLE SPECIFIC ERRORS ───
+        if (e.code === 'ECONNABORTED') {
+            reply(`❌ *Download timed out.* The video may be too large. Try a lower quality.`);
+        } else if (e.response?.status === 404) {
+            reply(`❌ *Video not found.* The video may have been deleted or is private.`);
+        } else if (e.message?.includes('quality')) {
+            reply(`❌ *Quality not available.* Try 720p or 1080p.`);
+        } else {
+            reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
+        }
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// LYRICS COMMAND - Search Song Lyrics
+// ═══════════════════════════════════════════════════
+case 'lyrics':
+case 'lyric':
+case 'songlyrics': {
+    if (!text) return reply(`🎵 Usage: ${prefix}lyrics <song name>\nExample: ${prefix}lyrics Dynasty Miaa\nExample: ${prefix}lyrics Alan Walker Faded`);
+    
+    await reply(`🔍 *Searching lyrics for:* ${text}`);
+    
+    try {
+        let lyricsData = null;
+        let usedApi = '';
+        
+        // ─── TRY PRINCE TECHNO API ───
+        try {
+            const apiUrl = `https://api.princetechn.com/api/search/lyrics?apikey=prince&query=${encodeURIComponent(text)}`;
+            const response = await axios.get(apiUrl, { 
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            
+            if (response.data?.success && response.data?.result) {
+                lyricsData = response.data.result;
+                usedApi = 'Prince Techno';
+                console.log('✅ Lyrics: Prince Techno API succeeded');
+            }
+        } catch (e) {
+            console.log('❌ Lyrics: Prince Techno API failed:', e.message);
+        }
+        
+        // ─── FALLBACK 1: Genius API ───
+        if (!lyricsData) {
+            try {
+                const response = await axios.get(
+                    `https://api.genius.com/search?q=${encodeURIComponent(text)}`,
+                    { 
+                        timeout: 15000,
+                        headers: { 
+                            'Authorization': 'Bearer YOUR_GENIUS_API_KEY_HERE',
+                            'Accept': 'application/json'
+                        }
+                    }
+                );
+                if (response.data?.response?.hits?.length > 0) {
+                    const hit = response.data.response.hits[0].result;
+                    const songId = hit.id;
+                    // Fetch lyrics from Genius or use a scraping service
+                    // For now, provide the song URL
+                    lyricsData = {
+                        title: hit.title,
+                        artist: hit.primary_artist?.name || 'Unknown',
+                        lyrics: `📌 *Lyrics available at:* ${hit.url}`,
+                        source: 'Genius'
+                    };
+                    usedApi = 'Genius';
+                    console.log('✅ Lyrics: Genius API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Lyrics: Genius API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK 2: Lyrics.ovh API ───
+        if (!lyricsData) {
+            try {
+                // Try to extract artist and title
+                const parts = text.split(' - ');
+                let artist = parts[0] || 'unknown';
+                let title = parts[1] || text;
+                
+                const response = await axios.get(
+                    `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`,
+                    { timeout: 15000 }
+                );
+                if (response.data?.lyrics) {
+                    lyricsData = {
+                        title: title,
+                        artist: artist,
+                        lyrics: response.data.lyrics,
+                        source: 'Lyrics.ovh'
+                    };
+                    usedApi = 'Lyrics.ovh';
+                    console.log('✅ Lyrics: Lyrics.ovh API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Lyrics: Lyrics.ovh API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK 3: DuckDuckGo Instant Lyrics (Scraping) ───
+        if (!lyricsData) {
+            try {
+                const response = await axios.get(
+                    `https://api.duckduckgo.com/?q=${encodeURIComponent(text + ' lyrics')}&format=json&no_redirect=1&no_html=1`,
+                    { timeout: 15000 }
+                );
+                if (response.data?.Abstract) {
+                    lyricsData = {
+                        title: text,
+                        artist: 'Unknown',
+                        lyrics: response.data.Abstract,
+                        source: 'DuckDuckGo'
+                    };
+                    usedApi = 'DuckDuckGo';
+                    console.log('✅ Lyrics: DuckDuckGo API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Lyrics: DuckDuckGo API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK 4: AZLyrics Scraping ───
+        if (!lyricsData) {
+            try {
+                const searchQuery = text.toLowerCase().replace(/ /g, '-');
+                const response = await axios.get(
+                    `https://www.azlyrics.com/lyrics/${searchQuery}.html`,
+                    { timeout: 15000 }
+                );
+                const html = response.data;
+                const match = html.match(/<div class="col-xs-12 col-lg-8 text-center">([\s\S]*?)<\/div>/);
+                if (match && match[1]) {
+                    const lyrics = match[1].replace(/<br>/g, '\n').replace(/<[^>]*>/g, '').trim();
+                    lyricsData = {
+                        title: text,
+                        artist: 'Unknown',
+                        lyrics: lyrics,
+                        source: 'AZLyrics'
+                    };
+                    usedApi = 'AZLyrics';
+                    console.log('✅ Lyrics: AZLyrics API succeeded');
+                }
+            } catch (e) {
+                console.log('❌ Lyrics: AZLyrics API failed:', e.message);
+            }
+        }
+        
+        if (!lyricsData) {
+            return reply(`❌ *Lyrics not found for:* ${text}\n\n💡 Try:\n• Check the spelling\n• Use format: Artist - Song\n• Try a different song`);
+        }
+        
+        // ─── FORMAT AND SEND LYRICS ───
+        let responseText = 
+`🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+        ✦  SONG LYRICS  ✦
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+
+📝 *Title:* ${lyricsData.title || 'Unknown'}
+🎤 *Artist:* ${lyricsData.artist || 'Unknown'}
+📡 *Source:* ${usedApi || 'Unknown'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${lyricsData.lyrics || 'No lyrics found.'}
+
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵`;
+
+        // ─── TRUNCATE IF TOO LONG ───
+        if (responseText.length > 4000) {
+            const truncatedLyrics = (lyricsData.lyrics || '').slice(0, 3500) + '\n\n📌 *Lyrics truncated due to length*';
+            responseText = 
+`🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+        ✦  SONG LYRICS  ✦
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+
+📝 *Title:* ${lyricsData.title || 'Unknown'}
+🎤 *Artist:* ${lyricsData.artist || 'Unknown'}
+📡 *Source:* ${usedApi || 'Unknown'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${truncatedLyrics}
+
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+💡 ${prefix}lyrics <song name> - Search again`;
+        }
+        
+        await empire.sendMessage(m.chat, {
+            text: responseText,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        
+    } catch (e) {
+        console.error('Lyrics search error:', e);
+        reply(`❌ *Failed to fetch lyrics:* ${e.message || 'Unknown error'}\n\n💡 Try searching with: Artist - Song Name`);
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// TIKTOK SEARCH COMMAND
+// ═══════════════════════════════════════════════════
+case 'tiktoksearch':
+case 'ttsearch':
+case 'tts': {
+    if (!text) return reply(`🔍 Usage: ${prefix}tiktoksearch <query>\nExample: ${prefix}tiktoksearch princetechnexus\nExample: ${prefix}ttsearch funny cats`);
+    
+    await reply(`🔍 *Searching TikTok for:* ${text}`);
+    
+    try {
+        // ─── CALL PRINCE TECHNO TIKTOK SEARCH API ───
+        const apiUrl = `https://api.princetechn.com/api/search/tiktoksearch?apikey=prince&query=${encodeURIComponent(text)}`;
+        const response = await axios.get(apiUrl, { 
+            timeout: 30000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (!response.data?.success || !response.data?.results) {
+            return reply('❌ No results found for your query. Try a different search term.');
+        }
+        
+        const results = response.data.results;
+        const videoUrl = results.no_watermark || results.watermark || results.video;
+        const coverUrl = results.cover || results.origin_cover;
+        const title = results.title || 'TikTok Video';
+        const musicUrl = results.music;
+        
+        // ─── SEND THUMBNAIL WITH INFO ───
+        if (coverUrl) {
+            try {
+                await empire.sendMessage(m.chat, {
+                    image: { url: coverUrl },
+                    caption: `🎵 *${title}*\n\n📥 *Downloading video...*`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            } catch (e) {}
+        }
+        
+        if (!videoUrl) {
+            return reply('❌ No video URL found for this search result.');
+        }
+        
+        // ─── DOWNLOAD VIDEO ───
+        await reply(`⏳ *Downloading video...*`);
+        
+        const videoResponse = await axios.get(videoUrl, {
+            responseType: 'arraybuffer',
+            timeout: 60000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': '*/*'
+            }
+        });
+        
+        const videoBuffer = Buffer.from(videoResponse.data);
+        
+        if (!videoBuffer || videoBuffer.length < 1000) {
+            return reply('❌ Failed to download video. The file may be corrupted.');
+        }
+        
+        const fileSizeMB = (videoBuffer.length / 1024 / 1024).toFixed(1);
+        
+        // ─── BUILD CAPTION ───
+        const caption = 
+`🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+        ✦  TIKTOK SEARCH  ✦
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+
+📝 *Title:* ${title}
+📦 *Size:* ${fileSizeMB} MB
+🔍 *Search:* ${text}
+
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵`;
+
+        // ─── SEND VIDEO ───
+        try {
+            await empire.sendMessage(m.chat, {
+                video: videoBuffer,
+                caption: caption,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+            console.log(`✅ TikTok search video sent: ${title}`);
+            
+        } catch (sendErr) {
+            console.error('Send error:', sendErr);
+            
+            // ─── FALLBACK: Send as document ───
+            try {
+                await empire.sendMessage(m.chat, {
+                    document: videoBuffer,
+                    mimetype: 'video/mp4',
+                    fileName: `${title}.mp4`,
+                    caption: caption,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+                
+                console.log(`✅ Video sent as document: ${title}`);
+            } catch (docErr) {
+                // ─── FINAL FALLBACK: Send link only ───
+                await empire.sendMessage(m.chat, {
+                    text: `🎵 *${title}*\n\n⚠️ *File too large to send directly.*\n\n🔗 *Download Link:*\n${videoUrl}`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            }
+        }
+        
+        // ─── SEND AUDIO ───
+        if (musicUrl) {
+            try {
+                const audioResponse = await axios.get(musicUrl, {
+                    responseType: 'arraybuffer',
+                    timeout: 30000
+                });
+                const audioBuffer = Buffer.from(audioResponse.data);
+                
+                if (audioBuffer && audioBuffer.length > 1000) {
+                    await empire.sendMessage(m.chat, {
+                        audio: audioBuffer,
+                        mimetype: 'audio/mpeg',
+                        fileName: `${title}.mp3`,
+                        ptt: false,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                }
+            } catch (e) {
+                console.log('Audio download failed:', e.message);
+            }
+        }
+        
+    } catch (e) {
+        console.error('TikTok search error:', e);
+        
+        if (e.code === 'ECONNABORTED') {
+            reply(`❌ *Search timed out.* Please try again.`);
+        } else if (e.response?.status === 404) {
+            reply(`❌ *No results found.* Try a different search term.`);
+        } else {
+            reply(`❌ *Search failed:* ${e.message || 'Unknown error'}`);
+        }
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// TELEGRAM STICKER DOWNLOAD COMMAND (with hardcoded token)
+// ═══════════════════════════════════════════════════
+case 'tgsticker':
+case 'tgs':
+case 'telegramsticker': {
+    if (!text) return reply(`🎭 Usage: ${prefix}tgsticker <sticker_url_or_pack_url>\nExample: ${prefix}tgsticker https://t.me/addstickers/StickerPackName\nExample: ${prefix}tgsticker https://t.me/stickers/StickerName\n\n📌 *Supports:*\n• Sticker pack URLs\n• Individual sticker URLs\n• Telegram sticker links`);
+    
+    // ─── YOUR TELEGRAM BOT TOKEN (Replace with your actual token) ───
+    const TELEGRAM_BOT_TOKEN = '8942092477:AAGPhfVoROjepdc4MDjawyXDOKl55b24ivY';
+    
+    // Validate Telegram URL
+    if (!text.includes('t.me') && !text.includes('telegram.me')) {
+        return reply('❌ Please provide a valid Telegram sticker URL.');
+    }
+    
+    await reply('🎭 *Processing Telegram sticker...* Please wait.');
+    
+    try {
+        // ─── EXTRACT STICKER INFO ───
+        let stickerUrl = text.trim();
+        let isPack = stickerUrl.includes('addstickers') || stickerUrl.includes('addsticker');
+        
+        // ─── TRY PRINCE TECHNO API ───
+        let stickerData = null;
+        let usedApi = '';
+        
+        try {
+            const apiUrl = `https://api.princetechn.com/api/download/tgsticker?apikey=prince&url=${encodeURIComponent(stickerUrl)}`;
+            const response = await axios.get(apiUrl, { 
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            
+            if (response.data?.success && response.data?.result) {
+                stickerData = response.data.result;
+                usedApi = 'Prince Techno';
+                console.log('✅ TG Sticker: Prince Techno API succeeded');
+            }
+        } catch (e) {
+            console.log('❌ TG Sticker: Prince Techno API failed:', e.message);
+        }
+        
+        // ─── FALLBACK: TELEGRAM BOT API ───
+        if (!stickerData && TELEGRAM_BOT_TOKEN !== '8942092477:AAGPhfVoROjepdc4MDjawyXDOKl55b24ivY') {
+            try {
+                // Try to get sticker file ID from URL
+                const fileId = stickerUrl.split('/').pop();
+                
+                // Get file info from Telegram API
+                const response = await axios.get(
+                    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`,
+                    { timeout: 15000 }
+                );
+                
+                if (response.data?.ok && response.data?.result?.file_path) {
+                    const filePath = response.data.result.file_path;
+                    const downloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+                    
+                    // Download the sticker
+                    const stickerResponse = await axios.get(downloadUrl, {
+                        responseType: 'arraybuffer',
+                        timeout: 30000
+                    });
+                    const stickerBuffer = Buffer.from(stickerResponse.data);
+                    
+                    if (stickerBuffer && stickerBuffer.length > 100) {
+                        await empire.sendMessage(m.chat, {
+                            sticker: stickerBuffer,
+                            contextInfo: newsletterContext()
+                        }, { quoted: m });
+                        
+                        await empire.sendMessage(m.chat, {
+                            text: `✅ *Sticker Sent!*\n📡 *Source:* Telegram Bot API`,
+                            contextInfo: newsletterContext()
+                        }, { quoted: m });
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('❌ TG Sticker: Telegram API failed:', e.message);
+            }
+        }
+        
+        // ─── FALLBACK: SCRAPE DIRECTLY ───
+        if (!stickerData) {
+            try {
+                // Try to fetch the sticker page
+                const response = await axios.get(stickerUrl, {
+                    timeout: 15000,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+                
+                const html = response.data;
+                const cheerio = require('cheerio');
+                const $ = cheerio.load(html);
+                
+                // Look for sticker images
+                const stickers = [];
+                $('img[src*=".webp"], img[src*=".png"], img[src*=".gif"]').each((i, el) => {
+                    const src = $(el).attr('src');
+                    if (src && (src.includes('webp') || src.includes('png') || src.includes('gif'))) {
+                        if (!src.includes('emoji') && !src.includes('icon')) {
+                            stickers.push(src.startsWith('//') ? 'https:' + src : src);
+                        }
+                    }
+                });
+                
+                // Also check for data-src attributes
+                $('[data-src*=".webp"], [data-src*=".png"]').each((i, el) => {
+                    const src = $(el).attr('data-src');
+                    if (src) {
+                        stickers.push(src.startsWith('//') ? 'https:' + src : src);
+                    }
+                });
+                
+                if (stickers.length > 0) {
+                    stickerData = {
+                        stickers: stickers,
+                        title: $('title').text() || 'Telegram Sticker',
+                        isPack: stickers.length > 1
+                    };
+                    usedApi = 'Scraper';
+                    console.log(`✅ TG Sticker: Scraper found ${stickers.length} stickers`);
+                }
+            } catch (e) {
+                console.log('❌ TG Sticker: Scraper failed:', e.message);
+            }
+        }
+        
+        if (!stickerData) {
+            return reply('❌ Failed to fetch Telegram sticker. The pack may be private or unavailable.');
+        }
+        
+        // ─── HANDLE STICKER PACK ───
+        if (stickerData.stickers && stickerData.stickers.length > 1) {
+            const total = Math.min(stickerData.stickers.length, 20);
+            const packName = stickerData.title || 'Sticker Pack';
+            
+            await reply(`🎭 *Downloading sticker pack:* ${packName}\n📊 *Total:* ${stickerData.stickers.length} stickers`);
+            
+            let sent = 0;
+            for (let i = 0; i < total; i++) {
+                const stickerUrl = stickerData.stickers[i];
+                try {
+                    const stickerResponse = await axios.get(stickerUrl, {
+                        responseType: 'arraybuffer',
+                        timeout: 30000
+                    });
+                    const stickerBuffer = Buffer.from(stickerResponse.data);
+                    
+                    if (stickerBuffer && stickerBuffer.length > 100) {
+                        await empire.sendMessage(m.chat, {
+                            sticker: stickerBuffer,
+                            contextInfo: newsletterContext()
+                        }, { quoted: m });
+                        sent++;
+                        await delay(300);
+                    }
+                } catch (e) {
+                    console.log(`Failed to download sticker ${i+1}:`, e.message);
+                }
+            }
+            
+            if (sent > 0) {
+                await empire.sendMessage(m.chat, {
+                    text: `✅ *Sticker Pack Sent!*\n\n📛 *Name:* ${packName}\n📊 *Total:* ${sent}/${total} stickers\n📡 *Source:* ${usedApi}`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            } else {
+                reply('❌ Failed to download any stickers from this pack.');
+            }
+            
+        } else if (stickerData.stickers && stickerData.stickers.length === 1) {
+            // ─── SINGLE STICKER ───
+            const stickerUrl = stickerData.stickers[0];
+            
+            await reply('⏳ *Downloading sticker...*');
+            
+            const stickerResponse = await axios.get(stickerUrl, {
+                responseType: 'arraybuffer',
+                timeout: 30000
+            });
+            const stickerBuffer = Buffer.from(stickerResponse.data);
+            
+            if (!stickerBuffer || stickerBuffer.length < 100) {
+                return reply('❌ Failed to download sticker.');
+            }
+            
+            await empire.sendMessage(m.chat, {
+                sticker: stickerBuffer,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+            await empire.sendMessage(m.chat, {
+                text: `✅ *Sticker Sent!*\n📡 *Source:* ${usedApi}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+        } else if (stickerData.download_url) {
+            // ─── DIRECT DOWNLOAD URL ───
+            await reply('⏳ *Downloading sticker...*');
+            
+            const stickerResponse = await axios.get(stickerData.download_url, {
+                responseType: 'arraybuffer',
+                timeout: 30000
+            });
+            const stickerBuffer = Buffer.from(stickerResponse.data);
+            
+            if (!stickerBuffer || stickerBuffer.length < 100) {
+                return reply('❌ Failed to download sticker.');
+            }
+            
+            await empire.sendMessage(m.chat, {
+                sticker: stickerBuffer,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+            await empire.sendMessage(m.chat, {
+                text: `✅ *Sticker Sent!*\n📛 *Name:* ${stickerData.title || 'Telegram Sticker'}\n📡 *Source:* ${usedApi}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+        } else {
+            reply('❌ No stickers found. The URL may be invalid or the pack is empty.');
+        }
+        
+    } catch (e) {
+        console.error('TG Sticker error:', e);
+        
+        if (e.code === 'ECONNABORTED') {
+            reply(`❌ *Download timed out.* Try again with a stable connection.`);
+        } else if (e.response?.status === 404) {
+            reply(`❌ *Sticker not found.* The URL may be invalid or the sticker was deleted.`);
+        } else {
+            reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
+        }
+    }
+    break;
+}
 // ═══════════════════════════════════════════════════
 // RESETLINK - Reset group invite link
 // ═══════════════════════════════════════════════════
