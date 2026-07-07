@@ -120,13 +120,22 @@ async function getShizoDownload(youtubeUrl) {
     throw new Error('Failed');
 }
 // ─── SAVE STATUS HANDLER ───
+// ─── SAVE STATUS HANDLER ───
 async function handleSaveStatus(empire, m) {
     try {
         // Check if it's a status message
-        if (m.key?.remoteJid !== 'status@broadcast') return false;
-        
-        // Check if we should save it
-        if (!global.saveStatusMode) return false;
+        if (m.key?.remoteJid !== 'status@broadcast') {
+            // If not replying to status, check quoted message
+            if (m.quoted?.key?.remoteJid !== 'status@broadcast') {
+                await empire.sendMessage(m.chat, {
+                    text: '❌ *Reply to a status message to save it.*',
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+                return false;
+            }
+            // Use quoted message
+            m = m.quoted;
+        }
         
         // Create directory if it doesn't exist
         const statusDir = path.join(process.cwd(), 'saved_statuses');
@@ -193,9 +202,19 @@ async function handleSaveStatus(empire, m) {
                 buffer = Buffer.concat([buffer, chunk]);
             }
             mediaBuffer = buffer;
+        } else {
+            await empire.sendMessage(m.chat, {
+                text: '❌ *No media found in this status.*',
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            return false;
         }
         
         if (!mediaBuffer || mediaBuffer.length === 0) {
+            await empire.sendMessage(m.chat, {
+                text: '❌ *Failed to download media.*',
+                contextInfo: newsletterContext()
+            }, { quoted: m });
             return false;
         }
         
@@ -228,17 +247,20 @@ async function handleSaveStatus(empire, m) {
         
         fs.writeFileSync(jsonPath, JSON.stringify(metadata, null, 2));
         
-        // Notify owner
-        const ownerNumber = empire.user.id.split(':')[0] + '@s.whatsapp.net';
-        await empire.sendMessage(ownerNumber, {
-            text: `✅ *Status Saved!*\n\n👤 *From:* @${senderName}\n📂 *Type:* ${mediaType}\n🕐 *Time:* ${new Date().toLocaleString()}\n📁 *File:* ${mediaFilename}`,
+        // Notify user
+        await empire.sendMessage(m.chat, {
+            text: `✅ *Status Saved!*\n\n👤 *From:* @${senderName}\n📂 *Type:* ${mediaType}\n🕐 *Time:* ${new Date().toLocaleString()}\n📁 *File:* ${mediaFilename}\n\n📌 Use ${prefix}save list to view all saved statuses.`,
             mentions: [sender],
-            contextInfo: newsletterContext()
-        }).catch(() => {});
+            contextInfo: newsletterContext({ mentionedJid: [sender] })
+        }, { quoted: m });
         
         return true;
     } catch (e) {
         console.error('Save status error:', e);
+        await empire.sendMessage(m.chat, {
+            text: `❌ *Failed to save status:* ${e.message || 'Unknown error'}`,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
         return false;
     }
 }
@@ -1342,42 +1364,87 @@ case 'img': {
 // ═══════════════════════════════════════════════════
 // GETPP - Get profile picture
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// GETPP - Get profile picture (FIXED)
+// ═══════════════════════════════════════════════════
 case 'getpp':
 case 'getprofilepic':
 case 'pp': {
     try {
-        let target = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null) || m.sender;
+        let target = null;
         
-        // If text is provided, try to get user by number
-        if (text && !target) {
-            const number = text.replace(/[^0-9]/g, '');
-            if (number.length >= 8) {
+        // ─── CHECK FOR MENTIONED USER ───
+        if (m.mentionedJid && m.mentionedJid.length > 0) {
+            target = m.mentionedJid[0];
+            console.log('✅ Target from mention:', target);
+        }
+        
+        // ─── CHECK FOR QUOTED USER ───
+        if (!target && m.quoted) {
+            target = m.quoted.sender || m.quoted.key?.participant || m.quoted.key?.remoteJid;
+            console.log('✅ Target from quoted message:', target);
+        }
+        
+        // ─── CHECK FOR NUMBER IN TEXT ───
+        if (!target && text) {
+            // Extract number from text (remove @ if present)
+            const numberMatch = text.match(/(?:@)?(\d{10,15})/);
+            if (numberMatch) {
+                const number = numberMatch[1];
                 target = `${number}@s.whatsapp.net`;
+                console.log('✅ Target from number in text:', target);
             }
         }
         
-        const ppUrl = await empire.profilePictureUrl(target, 'image').catch(() => null);
-        if (!ppUrl) {
-            const name = target ? `@${target.split('@')[0]}` : 'this user';
-            return reply(`❌ No profile picture found for ${name}.`, { mentions: [target] });
+        // ─── DEFAULT TO SENDER ───
+        if (!target) {
+            target = m.sender;
+            console.log('✅ Default target (sender):', target);
         }
         
+        // ─── CLEAN JID ───
+        // Remove any @g.us or extra characters
+        if (target.includes('@g.us')) {
+            target = target.split('@')[0] + '@s.whatsapp.net';
+        }
+        
+        console.log(`🔍 Fetching profile picture for: ${target}`);
+        
+        // ─── FETCH PROFILE PICTURE ───
+        const ppUrl = await empire.profilePictureUrl(target, 'image').catch((e) => {
+            console.log('❌ Profile picture error:', e.message);
+            return null;
+        });
+        
+        if (!ppUrl) {
+            const name = target.split('@')[0];
+            // Try to get the contact name
+            let displayName = name;
+            try {
+                const contact = await empire.contactQuery(target).catch(() => null);
+                if (contact) displayName = contact.name || name;
+            } catch (e) {}
+            
+            return reply(`❌ No profile picture found for *@${displayName}*.\n\n📌 Make sure the user has a profile picture set.`);
+        }
+        
+        // ─── SEND PROFILE PICTURE ───
         await empire.sendMessage(m.chat, {
             image: { url: ppUrl },
             caption: `🖼️ *Profile Picture*\n\n👤 *User:* @${target.split('@')[0]}`,
             mentions: [target],
-            contextInfo: newsletterContext()
+            contextInfo: newsletterContext({ mentionedJid: [target] })
         }, { quoted: m });
         
     } catch (e) {
         console.error('Get PP error:', e);
-        reply(`❌ *Failed to fetch profile picture:* ${e.message || 'Unknown error'}`);
+        reply(`❌ *Failed to fetch profile picture:* ${e.message || 'Unknown error'}\n\nMake sure the user exists and has a profile picture.`);
     }
     break;
 }
 
 // ═══════════════════════════════════════════════════
-// SETPP - Set profile picture (Bot owner only)
+// SETPP - Set profile picture (Owner only)
 // ═══════════════════════════════════════════════════
 case 'setpp':
 case 'setprofilepic': {
@@ -3148,18 +3215,51 @@ case 'snapdl': {
 // ═══════════════════════════════════════════════════
 // SAVESTATUS - Save, view, and manage status updates
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// SAVESTATUS COMMAND (FIXED)
+// ═══════════════════════════════════════════════════
+case 'save':
 case 'savestatus':
-case 'sstatus':
-case 'getstatus': {
+case 'sstatus': {
     if (!isCreator) return reply('❌ *Only the bot owner can use this command.*');
     
     const opt = args[0]?.toLowerCase();
     
-    // ─── VIEW SAVED STATUSES ───
+    // ─── SAVE STATUS (reply to status) ───
+    if (opt === 'save' || opt === 'status' || (!opt && m.quoted?.key?.remoteJid === 'status@broadcast')) {
+        // Check if replying to a status
+        if (m.quoted?.key?.remoteJid !== 'status@broadcast' && !text.includes('status')) {
+            return reply(
+`📸 *SAVE STATUS*
+━━━━━━━━━━━━━━━━━━━━━━━
+
+📌 *How to use:*
+1. Reply to a status message with:
+   ${prefix}save
+
+2. Or use:
+   ${prefix}save status
+
+📌 *Other commands:*
+${prefix}save list    - View saved statuses
+${prefix}save get <filename> - View a specific status
+${prefix}save delete <filename> - Delete a status
+${prefix}save clear   - Delete all statuses
+
+📸━━━━━━━━━━━━━━━━━━━━━━━`
+            );
+        }
+        
+        // Save the status
+        await handleSaveStatus(empire, m.quoted || m);
+        break;
+    }
+    
+    // ─── LIST SAVED STATUSES ───
     if (opt === 'list' || opt === 'view' || opt === 'all') {
         const statusDir = path.join(process.cwd(), 'saved_statuses');
         if (!fs.existsSync(statusDir)) {
-            return reply('📁 *No saved statuses found.*\n\nUse this command to save status updates from contacts.');
+            return reply('📁 *No saved statuses found.*\n\nUse ${prefix}save to save status updates from contacts.');
         }
         
         const files = fs.readdirSync(statusDir).filter(f => f.endsWith('.json'));
@@ -3167,32 +3267,32 @@ case 'getstatus': {
             return reply('📁 *No saved statuses found.*');
         }
         
-        let statusList = `📸━━━━━[ SAVED STATUSES ]━━━━━📸\n\n`;
+        let statusList = `📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸\n        ✦  SAVED STATUSES  ✦\n📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸\n\n`;
         let totalMedia = 0;
         
-        for (const file of files) {
+        for (const file of files.slice(0, 20)) {
             try {
                 const data = JSON.parse(fs.readFileSync(path.join(statusDir, file), 'utf8'));
-                const sender = data.sender || 'Unknown';
-                const timestamp = data.timestamp || 'Unknown';
+                const sender = data.senderName || data.sender?.split('@')[0] || 'Unknown';
+                const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'Unknown';
                 const mediaType = data.mediaType || 'Unknown';
-                const mediaCount = data.mediaCount || 0;
+                const mediaCount = data.mediaFiles?.length || 0;
                 totalMedia += mediaCount;
                 
-                statusList += `📌 *From:* ${sender}\n`;
-                statusList += `📂 *Type:* ${mediaType}\n`;
-                statusList += `📊 *Files:* ${mediaCount}\n`;
-                statusList += `🕐 *Saved:* ${timestamp}\n`;
-                statusList += `📁 *File:* ${file}\n\n`;
+                statusList += `📌 *From:* @${sender}\n`;
+                statusList += `   📂 Type: ${mediaType}\n`;
+                statusList += `   📊 Files: ${mediaCount}\n`;
+                statusList += `   🕐 Saved: ${timestamp}\n`;
+                statusList += `   📁 File: ${file}\n\n`;
             } catch (e) {}
         }
         
-        statusList += `📸━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        statusList += `📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸\n`;
         statusList += `📊 *Total Statuses:* ${files.length}\n`;
-        statusList += `🖼️ *Total Media:* ${totalMedia}\n`;
-        statusList += `\n💡 ${prefix}savestatus get <filename> - View a status\n`;
-        statusList += `💡 ${prefix}savestatus delete <filename> - Delete a status\n`;
-        statusList += `💡 ${prefix}savestatus clear - Delete all statuses`;
+        statusList += `🖼️ *Total Media:* ${totalMedia}\n\n`;
+        statusList += `💡 ${prefix}save get <filename> - View a status\n`;
+        statusList += `💡 ${prefix}save delete <filename> - Delete a status\n`;
+        statusList += `💡 ${prefix}save clear - Delete all statuses`;
         
         await empire.sendMessage(m.chat, {
             text: statusList,
@@ -3205,7 +3305,7 @@ case 'getstatus': {
     if (opt === 'get' || opt === 'view') {
         const filename = args[1];
         if (!filename) {
-            return reply(`📸 Usage: ${prefix}savestatus get <filename>\n\nRun ${prefix}savestatus list to see saved files.`);
+            return reply(`📸 Usage: ${prefix}save get <filename>\n\nRun ${prefix}save list to see saved files.`);
         }
         
         const statusDir = path.join(process.cwd(), 'saved_statuses');
@@ -3217,13 +3317,12 @@ case 'getstatus': {
         
         try {
             const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-            const sender = data.sender || 'Unknown';
-            const timestamp = data.timestamp || 'Unknown';
+            const sender = data.senderName || data.sender?.split('@')[0] || 'Unknown';
+            const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'Unknown';
             const mediaType = data.mediaType || 'Unknown';
             
-            // Build message
-            let infoText = `📸━━━━━[ STATUS VIEW ]━━━━━📸\n\n`;
-            infoText += `👤 *From:* ${sender}\n`;
+            let infoText = `📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸\n        ✦  STATUS VIEW  ✦\n📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸\n\n`;
+            infoText += `👤 *From:* @${sender}\n`;
             infoText += `📂 *Type:* ${mediaType}\n`;
             infoText += `🕐 *Saved:* ${timestamp}\n\n`;
             
@@ -3274,7 +3373,6 @@ case 'getstatus': {
                         console.error('Failed to send media:', e);
                     }
                     
-                    // Small delay between media
                     await delay(500);
                 }
             }
@@ -3295,7 +3393,7 @@ case 'getstatus': {
     if (opt === 'delete' || opt === 'del') {
         const filename = args[1];
         if (!filename) {
-            return reply(`📸 Usage: ${prefix}savestatus delete <filename>\n\nRun ${prefix}savestatus list to see saved files.`);
+            return reply(`📸 Usage: ${prefix}save delete <filename>\n\nRun ${prefix}save list to see saved files.`);
         }
         
         const statusDir = path.join(process.cwd(), 'saved_statuses');
@@ -3306,21 +3404,17 @@ case 'getstatus': {
         }
         
         try {
-            // Read the JSON to get media files
             const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
             
-            // Delete all media files
-            for (const mediaFile of data.mediaFiles) {
+            for (const mediaFile of data.mediaFiles || []) {
                 const mediaPath = path.join(statusDir, mediaFile);
                 if (fs.existsSync(mediaPath)) {
                     fs.unlinkSync(mediaPath);
                 }
             }
             
-            // Delete the JSON file
             fs.unlinkSync(filePath);
-            
-            reply(`✅ *Status deleted successfully:* ${filename}\n📁 Removed ${data.mediaFiles.length} media file(s).`);
+            reply(`✅ *Status deleted successfully:* ${filename}\n📁 Removed ${data.mediaFiles?.length || 0} media file(s).`);
         } catch (e) {
             reply(`❌ *Failed to delete status:* ${e.message || 'Unknown error'}`);
         }
@@ -3351,25 +3445,28 @@ case 'getstatus': {
         break;
     }
     
-    // ─── HELP / DEFAULT ───
+    // ─── DEFAULT: SHOW HELP ───
     reply(
-`📸━━━━━[ SAVE STATUS ]━━━━━📸
+`📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸
+        ✦  SAVE STATUS  ✦
+📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸
 
 📌 *Commands:*
 
-${prefix}savestatus save - Save current status (reply to status)
-${prefix}savestatus list - View all saved statuses
-${prefix}savestatus get <filename> - View a specific status
-${prefix}savestatus delete <filename> - Delete a status
-${prefix}savestatus clear - Delete all statuses
+${prefix}save              - Save current status (reply to status)
+${prefix}save list         - View all saved statuses
+${prefix}save get <file>   - View a specific status
+${prefix}save delete <file> - Delete a status
+${prefix}save clear        - Delete all statuses
 
 📌 *How to use:*
 1. Reply to a status message with:
-   ${prefix}savestatus save
+   ${prefix}save
+
 2. The bot will download and save it
 3. View saved statuses anytime
 
-📸━━━━━━━━━━━━━━━━━━━━━━━
+📸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📸
 💡 *Owner only command*`
     );
     break;
