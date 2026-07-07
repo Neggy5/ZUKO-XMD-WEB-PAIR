@@ -525,19 +525,19 @@ module.exports = empire = async (empire, m, chatUpdate, store) => {
             break;
         }
 
-        // ═══════════════════════════════════════════════════
-        // 2. MENU - Main command list (EXOTIC BULLETS + NEWSLETTER)
-        // ═══════════════════════════════════════════════════
-        case 'menu':
-        case 'help': {
-            const now = moment().tz('Africa/Lagos').format('HH:mm:ss');
-            const date = moment().tz('Africa/Lagos').format('DD/MM/YYYY');
-            const userName = m.pushName || 'User';
-            const up = process.uptime();
-            const upStr = `${Math.floor(up/86400)}d ${Math.floor((up%86400)/3600)}h ${Math.floor((up%3600)/60)}m`;
-            const mem = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
+        // // ═══════════════════════════════════════════════════
+// 2. MENU - Main command list (EXOTIC BULLETS + NEWSLETTER)
+// ═══════════════════════════════════════════════════
+case 'menu':
+case 'help': {
+    const now = moment().tz('Africa/Lagos').format('HH:mm:ss');
+    const date = moment().tz('Africa/Lagos').format('DD/MM/YYYY');
+    const userName = m.pushName || 'User';
+    const up = process.uptime();
+    const upStr = `${Math.floor(up/86400)}d ${Math.floor((up%86400)/3600)}h ${Math.floor((up%3600)/60)}m`;
+    const mem = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
 
-            const menuText = 
+    const menuText = 
 `◢━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◣
     ✦  ℤ𝕌𝕂𝕆 ✗ 𝕄𝔻  ✦
     ──── 𝘾𝙊𝙍𝙀 𝙈𝙀𝙉𝙐 ────
@@ -604,21 +604,42 @@ module.exports = empire = async (empire, m, chatUpdate, store) => {
 
 📰 *Forwarded via ${global.newsletterName || 'ZUKO XMD'}*`;
 
-            try {
-                await empire.sendMessage(m.chat, {
-                    image: { url: global.menuImage },
-                    caption: menuText,
-                    contextInfo: newsletterContext({ mentionedJid: [m.sender] })
-                }, { quoted: m });
-            } catch (e) {
-                await empire.sendMessage(m.chat, { 
-                    text: menuText,
-                    contextInfo: newsletterContext()
-                }, { quoted: m });
-            }
-            break;
+    try {
+        // Load image from media/logo.jpg
+        const imagePath = './media/logo.jpg';
+        let imageBuffer = null;
+        
+        if (fs.existsSync(imagePath)) {
+            imageBuffer = fs.readFileSync(imagePath);
+            console.log('✅ Menu image loaded from:', imagePath);
+        } else {
+            console.log('⚠️ Menu image not found at:', imagePath);
         }
-
+        
+        if (imageBuffer) {
+            await empire.sendMessage(m.chat, {
+                image: imageBuffer,
+                caption: menuText,
+                contextInfo: newsletterContext({ mentionedJid: [m.sender] })
+            }, { quoted: m });
+        } else {
+            // Fallback: text only if image not found
+            await empire.sendMessage(m.chat, { 
+                text: menuText,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        }
+        
+    } catch (e) {
+        console.error('❌ Menu send error:', e.message);
+        // Final fallback: text only
+        await empire.sendMessage(m.chat, { 
+            text: menuText,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+    }
+    break;
+}
         // ═══════════════════════════════════════════════════
         // 3. STICKER - Image/Video to sticker
         // ═══════════════════════════════════════════════════
