@@ -4,15 +4,23 @@ const chalk = require('chalk');
 const figlet = require('figlet');
 const express = require('express');
 
+const startpairing = require('./pair');
+
 const AUTH_FILE = './auth.json';
+const PAIRING_FILE = path.join(__dirname, 'empirestore', 'pairing', 'pairing.json');
 
 // ========================
-// RAILWAY HEALTH SERVER
+// RAILWAY HEALTH + WEB PAIRING SERVER
 // ========================
 // Railway requires an HTTP service to bind to PORT within 60 seconds or
-// it marks the deploy as unhealthy. This tiny Express server satisfies that.
+// it marks the deploy as unhealthy. This same Express server also serves
+// the web pairing page (public/index.html) and its API.
 const PORT = process.env.PORT || 3000;
 const healthApp = express();
+
+healthApp.use(express.json());
+healthApp.use(express.urlencoded({ extended: true }));
+healthApp.use(express.static(path.join(__dirname, 'public')));
 
 healthApp.get('/health', (_, res) => res.status(200).json({
     status: 'ok',
@@ -20,10 +28,65 @@ healthApp.get('/health', (_, res) => res.status(200).json({
     uptime: process.uptime().toFixed(0) + 's'
 }));
 
-healthApp.get('/', (_, res) => res.status(200).send('⚡ ZUKO XMD is running'));
+// POST /api/pair { number } -> kicks off startpairing() and polls
+// empirestore/pairing/pairing.json for the freshly generated code.
+healthApp.post('/api/pair', async (req, res) => {
+    const rawNumber = (req.body && req.body.number || '').toString();
+    const number = rawNumber.replace(/[^0-9]/g, '');
+
+    if (!number || number.length < 8) {
+        return res.status(400).json({ error: 'Please provide a valid phone number with country code.' });
+    }
+
+    try {
+        startpairing(number).catch(err => {
+            console.log(chalk.red(`❌ startpairing() error for ${number}:`), err.message);
+        });
+
+        const code = await waitForPairingCode(number, 20000);
+
+        if (!code) {
+            return res.status(504).json({ error: 'Timed out waiting for pairing code. Please try again.' });
+        }
+
+        return res.status(200).json({ code });
+    } catch (err) {
+        console.log(chalk.red('❌ /api/pair error:'), err.message);
+        return res.status(500).json({ error: 'Something went wrong generating your pairing code.' });
+    }
+});
+
+// Poll pairing.json until it contains a fresh code for `number`, or timeout.
+function waitForPairingCode(number, timeoutMs) {
+    return new Promise((resolve) => {
+        const start = Date.now();
+
+        const interval = setInterval(() => {
+            try {
+                if (fs.existsSync(PAIRING_FILE)) {
+                    const data = JSON.parse(fs.readFileSync(PAIRING_FILE, 'utf8'));
+                    const isMatch = data.number === number;
+                    const isFresh = (Date.now() - new Date(data.timestamp).getTime()) < timeoutMs + 5000;
+
+                    if (isMatch && isFresh) {
+                        clearInterval(interval);
+                        return resolve(data.code);
+                    }
+                }
+            } catch (e) {
+                // ignore parse errors from a file mid-write, keep polling
+            }
+
+            if (Date.now() - start > timeoutMs) {
+                clearInterval(interval);
+                resolve(null);
+            }
+        }, 750);
+    });
+}
 
 healthApp.listen(PORT, () => {
-    console.log(chalk.green(`✅ Health server listening on port ${PORT}`));
+    console.log(chalk.green(`✅ Health + web pairing server listening on port ${PORT}`));
 });
 
 // ========================
