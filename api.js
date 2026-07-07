@@ -421,7 +421,66 @@ const APIs = {
     }
     throw new Error('Okatsu ytmp4 returned no mp4');
   },
-  
+  // Add these to your api.js file
+// ─── FACEBOOK DOWNLOAD ───
+getFacebookDownload: async (url) => {
+    try {
+        const response = await api.get(`https://api.siputzx.my.id/api/d/fbdl`, {
+            params: { url }
+        });
+        if (response.data?.status && response.data?.data) {
+            const data = response.data.data;
+            return {
+                video: data.video || data.hd || data.sd || data.url,
+                audio: data.audio || data.music_url,
+                title: data.title || data.caption || 'Facebook Video'
+            };
+        }
+        throw new Error('Facebook download failed');
+    } catch (error) {
+        throw new Error('Failed to download Facebook video');
+    }
+},
+
+// ─── INSTAGRAM DOWNLOAD ───
+getInstagramDownload: async (url) => {
+    try {
+        const response = await api.get(`https://api.siputzx.my.id/api/d/igdl`, {
+            params: { url }
+        });
+        if (response.data?.status && response.data?.data) {
+            const data = response.data.data;
+            return {
+                video: data.video || null,
+                images: data.urls || data.images || [],
+                title: data.title || data.caption || 'Instagram Media'
+            };
+        }
+        throw new Error('Instagram download failed');
+    } catch (error) {
+        throw new Error('Failed to download Instagram media');
+    }
+},
+
+// ─── TWITTER/X DOWNLOAD ───
+getTwitterDownload: async (url) => {
+    try {
+        const response = await api.get(`https://api.siputzx.my.id/api/d/twitter`, {
+            params: { url }
+        });
+        if (response.data?.status && response.data?.data) {
+            const data = response.data.data;
+            return {
+                video: data.video || null,
+                images: data.images || [],
+                title: data.title || data.caption || 'Twitter Media'
+            };
+        }
+        throw new Error('Twitter download failed');
+    } catch (error) {
+        throw new Error('Failed to download Twitter media');
+    }
+}
   // TikTok Download API
   getTikTokDownload: async (url) => {
     const apiUrl = `https://api.siputzx.my.id/api/d/tiktok?url=${encodeURIComponent(url)}`;

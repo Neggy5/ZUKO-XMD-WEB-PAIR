@@ -572,21 +572,21 @@ module.exports = empire = async (empire, m, chatUpdate, store) => {
             contextInfo: newsletterContext()
         }, { quoted: m });
 
+       
         // ─── BOT MODE CHECK ───
-        if (db.botMode?.mode === 'private' && !isCreator) {
-            const isWhitelisted = db.botMode.whitelist?.includes(senderPn) || false;
-            if (!isWhitelisted) {
-                const allowedPublicCmds = ['ping', 'menu', 'help'];
-                if (!allowedPublicCmds.includes(command)) {
-                    await empire.sendMessage(m.chat, {
-                        text: `🔒 *Bot is in PRIVATE MODE*\n\nOnly the bot owner can use this command.`,
-                        contextInfo: newsletterContext()
-                    }, { quoted: m }).catch(() => {});
-                    return;
-                }
-            }
+if (db.botMode?.mode === 'private' && !isCreator) {
+    const isWhitelisted = db.botMode.whitelist?.includes(senderPn) || false;
+    if (!isWhitelisted) {
+        const allowedPublicCmds = ['ping', 'menu', 'help', 'mode', 'owner'];
+        if (!allowedPublicCmds.includes(command)) {
+            await empire.sendMessage(m.chat, {
+                text: `🔒 *Bot is in PRIVATE MODE*\n\nOnly the bot owner and whitelisted users can use commands.\n\n📌 *Available commands:*\n${allowedPublicCmds.map(c => `✦ ${prefix}${c}`).join('\n')}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m }).catch(() => {});
+            return;
         }
-        
+    }
+}
         // ─── SAVE STATUS ───
 if (saveStatusMode && m.key?.remoteJid === 'status@broadcast') {
     await handleSaveStatus(empire, m);
@@ -759,7 +759,9 @@ case 'help': {
 ◈────────────────────────◈
 ◇ 𝗠𝗜𝗦𝗖
 ◈────────────────────────◈
-
+  ✦ ${prefix}mode           
+  ✦ ${prefix}mode add @user
+  ✦ ${prefix}mode remove @user 
   ✦ ${prefix}balance        
   ✦ ${prefix}owner 
   ✦ ${prefix}viewonce           
@@ -840,6 +842,9 @@ case 'help': {
 // ═══════════════════════════════════════════════════
 // GIF REACTION COMMANDS
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// GIF REACTION COMMANDS (FIXED)
+// ═══════════════════════════════════════════════════
 case 'gif':
 case 'reaction':
 case 'reactgif': {
@@ -849,43 +854,17 @@ case 'reactgif': {
 
 Usage: ${prefix}gif <category> [@user]
 
-📌 *Available Categories:*
-
-😊 *Happy/Smile:*
-  happy, smile, laugh, dance, cheer, celebrate
-
-😢 *Sad/Cry:*
-  sad, cry, tears, depressed, lonely
-
-😡 *Angry:*
-  angry, mad, rage, punch, slap, kick, kill
-
-❤️ *Love/Affection:*
-  hug, kiss, cuddle, love, heart, marry
-
-😅 *Embarrassed:*
-  blush, shy, awkward, cringe, facepalm
-
-🙄 *Annoyed/Bored:*
-  bored, annoyed, tired, sleep, yawn
-
-🎉 *Celebration:*
-  celebrate, party, confetti, fireworks, victory
-
-🤔 *Confused/Thinking:*
-  think, confused, question, hmm
-
-💪 *Action/Epic:*
-  epic, action, cool, gangster, respect
-
-🎲 *Random:*
-  random, anime, funny, meme
+📌 *Categories:*
+happy, sad, angry, hug, kiss, slap, punch, kick,
+cuddle, pat, poke, blush, cry, dance, smile,
+laugh, wave, wink, yeet, bonk, love, heart,
+facepalm, awkward, celebrate, party, think,
+confused, cool, epic, respect, shy, tired, sleep
 
 📌 *Examples:*
 ${prefix}gif hug @user
 ${prefix}gif slap @user
-${prefix}gif dance
-${prefix}gif cry @user`
+${prefix}gif dance`
         );
     }
     
@@ -900,112 +879,99 @@ ${prefix}gif cry @user`
     try {
         let gifUrl = null;
         let usedApi = '';
+        let attempts = 0;
+        const maxAttempts = 3;
         
         // ─── CATEGORY MAPPING ───
-        const categoryMap = {
-            // Happy/Smile
+        const searchTerms = {
             'happy': ['happy', 'smile', 'joy'],
-            'smile': ['smile', 'happy', 'joy'],
+            'smile': ['smile', 'happy'],
             'laugh': ['laugh', 'laughing', 'funny'],
             'dance': ['dance', 'dancing', 'party'],
-            'cheer': ['cheer', 'celebrate', 'happy'],
-            'celebrate': ['celebrate', 'party', 'happy'],
-            
-            // Sad/Cry
             'sad': ['sad', 'cry', 'depressed'],
             'cry': ['cry', 'crying', 'sad'],
-            'tears': ['cry', 'crying', 'sad'],
-            'depressed': ['sad', 'depressed', 'cry'],
-            'lonely': ['sad', 'lonely', 'cry'],
-            
-            // Angry
             'angry': ['angry', 'mad', 'rage'],
-            'mad': ['angry', 'mad', 'rage'],
-            'rage': ['angry', 'rage', 'mad'],
+            'hug': ['hug', 'cuddle', 'embrace'],
+            'kiss': ['kiss', 'romantic', 'love'],
+            'slap': ['slap', 'hit', 'face slap'],
             'punch': ['punch', 'fight', 'hit'],
-            'slap': ['slap', 'hit', 'angry'],
-            'kick': ['kick', 'fight', 'angry'],
-            'kill': ['kill', 'death', 'angry'],
-            
-            // Love/Affection
-            'hug': ['hug', 'cuddle', 'love'],
-            'kiss': ['kiss', 'love', 'romantic'],
-            'cuddle': ['cuddle', 'hug', 'love'],
+            'kick': ['kick', 'fight'],
+            'cuddle': ['cuddle', 'hug', 'snuggle'],
+            'pat': ['pat', 'headpat', 'pet'],
+            'poke': ['poke', 'nudge'],
+            'blush': ['blush', 'embarrassed', 'shy'],
+            'wave': ['wave', 'waving', 'hello'],
+            'wink': ['wink', 'winking'],
+            'yeet': ['yeet', 'throw', 'toss'],
+            'bonk': ['bonk', 'hit', 'bonk head'],
+            'bite': ['bite', 'chomp'],
+            'nom': ['nom', 'eat', 'munch'],
             'love': ['love', 'heart', 'romantic'],
             'heart': ['love', 'heart', 'romantic'],
-            'marry': ['marry', 'propose', 'love'],
-            
-            // Embarrassed
-            'blush': ['blush', 'embarrassed', 'shy'],
-            'shy': ['shy', 'blush', 'embarrassed'],
-            'awkward': ['awkward', 'cringe', 'embarrassed'],
-            'cringe': ['cringe', 'awkward', 'embarrassed'],
             'facepalm': ['facepalm', 'face palm', 'disappointed'],
-            
-            // Annoyed/Bored
-            'bored': ['bored', 'tired', 'annoyed'],
-            'annoyed': ['annoyed', 'bored', 'tired'],
-            'tired': ['tired', 'sleep', 'bored'],
-            'sleep': ['sleep', 'tired', 'bored'],
-            'yawn': ['yawn', 'sleep', 'tired'],
-            
-            // Celebration
-            'party': ['party', 'celebrate', 'dance'],
-            'confetti': ['confetti', 'celebrate', 'party'],
-            'fireworks': ['fireworks', 'celebrate', 'party'],
-            'victory': ['victory', 'win', 'success'],
-            'win': ['win', 'victory', 'success'],
-            'success': ['success', 'victory', 'win'],
-            
-            // Confused/Thinking
+            'awkward': ['awkward', 'cringe', 'embarrassed'],
+            'celebrate': ['celebrate', 'party', 'celebration'],
+            'party': ['party', 'celebration', 'dance'],
             'think': ['think', 'thinking', 'confused'],
-            'confused': ['confused', 'think', 'question'],
-            'question': ['confused', 'question', 'think'],
-            'hmm': ['thinking', 'confused', 'hmm'],
-            
-            // Action/Epic
-            'epic': ['epic', 'awesome', 'cool'],
-            'action': ['action', 'cool', 'epic'],
+            'confused': ['confused', 'question', 'think'],
             'cool': ['cool', 'awesome', 'epic'],
-            'gangster': ['gangster', 'cool', 'gangsta'],
+            'epic': ['epic', 'awesome', 'cool'],
             'respect': ['respect', 'honor', 'bow'],
-            
-            // Random
-            'random': ['random', 'funny', 'meme'],
-            'anime': ['anime', 'anime reaction', 'anime gif'],
-            'funny': ['funny', 'meme', 'hilarious'],
-            'meme': ['meme', 'funny', 'random']
+            'shy': ['shy', 'embarrassed', 'blush'],
+            'tired': ['tired', 'sleepy', 'exhausted'],
+            'sleep': ['sleep', 'tired', 'sleepy']
         };
         
-        // Get search terms for the category
-        const searchTerms = categoryMap[category] || [category, 'reaction'];
-        const searchQuery = searchTerms[0] + ' reaction gif';
+        const searchQuery = (searchTerms[category] || [category]).join(' ') + ' reaction gif';
         
-        // ─── TRY TENOR API ───
-        try {
-            const response = await axios.get('https://g.tenor.com/v1/search', {
-                params: {
-                    q: searchQuery,
-                    key: 'LIVDSRZULELA', // Public Tenor API key
-                    limit: 20,
-                    media_filter: 'gif'
-                },
-                timeout: 15000
-            });
-            
-            if (response.data?.results?.length > 0) {
-                const randomIndex = Math.floor(Math.random() * Math.min(response.data.results.length, 20));
-                const result = response.data.results[randomIndex];
-                gifUrl = result.media[0]?.gif?.url || result.media[0]?.tinygif?.url;
-                usedApi = 'Tenor';
-                console.log('✅ GIF: Tenor API succeeded');
+        // ─── FUNCTION TO VALIDATE GIF URL ───
+        const validateGifUrl = async (url) => {
+            try {
+                const response = await axios.head(url, { timeout: 5000 });
+                return response.status === 200;
+            } catch {
+                return false;
             }
-        } catch (e) {
-            console.log('❌ GIF: Tenor API failed:', e.message);
+        };
+        
+        // ─── TRY 1: TENOR API ───
+        while (!gifUrl && attempts < maxAttempts) {
+            try {
+                const response = await axios.get('https://g.tenor.com/v1/search', {
+                    params: {
+                        q: searchQuery,
+                        key: 'LIVDSRZULELA',
+                        limit: 20,
+                        media_filter: 'gif'
+                    },
+                    timeout: 15000
+                });
+                
+                if (response.data?.results?.length > 0) {
+                    // Shuffle results for randomness
+                    const shuffled = response.data.results.sort(() => Math.random() - 0.5);
+                    
+                    for (const result of shuffled) {
+                        const url = result.media[0]?.gif?.url || result.media[0]?.tinygif?.url;
+                        if (url) {
+                            const isValid = await validateGifUrl(url);
+                            if (isValid) {
+                                gifUrl = url;
+                                usedApi = 'Tenor';
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('❌ Tenor API failed:', e.message);
+            }
+            attempts++;
         }
         
-        // ─── TRY GIPHY API ───
-        if (!gifUrl) {
+        // ─── TRY 2: GIPHY API ───
+        attempts = 0;
+        while (!gifUrl && attempts < maxAttempts) {
             try {
                 const response = await axios.get('https://api.giphy.com/v1/gifs/search', {
                     params: {
@@ -1018,124 +984,199 @@ ${prefix}gif cry @user`
                 });
                 
                 if (response.data?.data?.length > 0) {
-                    const randomIndex = Math.floor(Math.random() * Math.min(response.data.data.length, 20));
-                    const result = response.data.data[randomIndex];
-                    gifUrl = result.images?.original?.url || result.images?.fixed_height?.url;
-                    usedApi = 'Giphy';
-                    console.log('✅ GIF: Giphy API succeeded');
+                    const shuffled = response.data.data.sort(() => Math.random() - 0.5);
+                    
+                    for (const result of shuffled) {
+                        const url = result.images?.original?.url || result.images?.fixed_height?.url;
+                        if (url) {
+                            const isValid = await validateGifUrl(url);
+                            if (isValid) {
+                                gifUrl = url;
+                                usedApi = 'Giphy';
+                                break;
+                            }
+                        }
+                    }
                 }
             } catch (e) {
-                console.log('❌ GIF: Giphy API failed:', e.message);
+                console.log('❌ Giphy API failed:', e.message);
             }
+            attempts++;
         }
         
-        // ─── FALLBACK: NEKOS.BEST (Anime GIFs) ───
-        if (!gifUrl) {
+        // ─── TRY 3: NEKOS.BEST (Anime) ───
+        attempts = 0;
+        while (!gifUrl && attempts < maxAttempts) {
             try {
-                const animeCategory = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush', 'happy', 'wave', 'wink', 'yeet', 'bonk', 'kick', 'punch', 'bite', 'nom', 'baka'];
+                const animeCategories = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush', 'happy', 'wave', 'wink', 'yeet', 'bonk', 'kick', 'punch', 'bite', 'nom'];
                 let fallbackCategory = 'hug';
-                if (animeCategory.includes(category)) {
+                if (animeCategories.includes(category)) {
                     fallbackCategory = category;
-                } else if (category === 'love' || category === 'heart' || category === 'marry') {
-                    fallbackCategory = 'kiss';
-                } else if (category === 'angry' || category === 'mad' || category === 'rage') {
-                    fallbackCategory = 'slap';
                 }
                 
                 const response = await axios.get(`https://nekos.best/api/v2/${fallbackCategory}`, {
-                    timeout: 10000
+                    timeout: 15000
                 });
+                
                 if (response.data?.results?.[0]?.url) {
-                    gifUrl = response.data.results[0].url;
-                    usedApi = 'Nekos.best';
-                    console.log('✅ GIF: Nekos.best API succeeded');
+                    const url = response.data.results[0].url;
+                    const isValid = await validateGifUrl(url);
+                    if (isValid) {
+                        gifUrl = url;
+                        usedApi = 'Nekos.best';
+                    }
                 }
             } catch (e) {
-                console.log('❌ GIF: Nekos.best API failed:', e.message);
+                console.log('❌ Nekos.best API failed:', e.message);
             }
+            attempts++;
         }
         
-        // ─── FALLBACK: WAIFU.PICS (Anime) ───
-        if (!gifUrl) {
+        // ─── TRY 4: WAIFU.PICS (Anime) ───
+        attempts = 0;
+        while (!gifUrl && attempts < maxAttempts) {
             try {
-                const animeCategory = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush'];
+                const animeCategories = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush'];
                 let fallbackCategory = 'hug';
-                if (animeCategory.includes(category)) {
+                if (animeCategories.includes(category)) {
                     fallbackCategory = category;
                 }
                 
                 const response = await axios.get(`https://api.waifu.pics/sfw/${fallbackCategory}`, {
-                    timeout: 10000
+                    timeout: 15000
                 });
+                
                 if (response.data?.url) {
-                    gifUrl = response.data.url;
-                    usedApi = 'Waifu.pics';
-                    console.log('✅ GIF: Waifu.pics API succeeded');
+                    const url = response.data.url;
+                    const isValid = await validateGifUrl(url);
+                    if (isValid) {
+                        gifUrl = url;
+                        usedApi = 'Waifu.pics';
+                    }
                 }
             } catch (e) {
-                console.log('❌ GIF: Waifu.pics API failed:', e.message);
+                console.log('❌ Waifu.pics API failed:', e.message);
+            }
+            attempts++;
+        }
+        
+        // ─── TRY 5: DIRECT URL FROM CATEGORY (Fallback) ───
+        if (!gifUrl) {
+            const fallbackUrls = {
+                'hug': 'https://media.tenor.com/pHXqZkZCcAAAAAC/anime-hug.gif',
+                'kiss': 'https://media.tenor.com/3m9PqRfWgZAAAAAC/anime-kiss.gif',
+                'slap': 'https://media.tenor.com/6L5M5mQ5A5AAAAAC/anime-slap.gif',
+                'cry': 'https://media.tenor.com/5N5k5d5f5g5AAAAAC/anime-cry.gif',
+                'happy': 'https://media.tenor.com/4M4j4e4h4i4AAAAAC/anime-happy.gif',
+                'dance': 'https://media.tenor.com/3N3k3d3f3g3AAAAAC/anime-dance.gif'
+            };
+            
+            if (fallbackUrls[category]) {
+                const url = fallbackUrls[category];
+                const isValid = await validateGifUrl(url);
+                if (isValid) {
+                    gifUrl = url;
+                    usedApi = 'Fallback';
+                }
             }
         }
         
         if (!gifUrl) {
-            return reply('❌ No reaction GIF found. Please try another category.');
+            return reply('❌ No reaction GIF found. Please try another category or try again later.');
         }
         
         // ─── BUILD CAPTION ───
-        let caption = '';
         const emojiMap = {
-            'happy': '😊', 'smile': '😊', 'laugh': '😂', 'dance': '💃', 'cheer': '🎉',
-            'sad': '😢', 'cry': '😭', 'tears': '😢', 'depressed': '😔', 'lonely': '😔',
-            'angry': '😡', 'mad': '😠', 'rage': '😤', 'punch': '👊', 'slap': '👋',
-            'hug': '🤗', 'kiss': '😘', 'cuddle': '🫂', 'love': '❤️', 'heart': '💕',
-            'blush': '😳', 'shy': '🥺', 'awkward': '😅', 'cringe': '😬', 'facepalm': '🤦',
-            'bored': '😑', 'annoyed': '😒', 'tired': '😩', 'sleep': '😴', 'yawn': '🥱',
-            'party': '🎊', 'confetti': '🎊', 'fireworks': '🎆', 'victory': '🏆',
-            'think': '🤔', 'confused': '😕', 'question': '❓', 'hmm': '🤔',
-            'epic': '🔥', 'action': '💥', 'cool': '😎', 'gangster': '🕶️', 'respect': '🙏',
-            'random': '🎲', 'anime': '🎌', 'funny': '🤣', 'meme': '😂'
+            'happy': '😊', 'smile': '😊', 'laugh': '😂', 'dance': '💃',
+            'sad': '😢', 'cry': '😭', 'angry': '😡', 'hug': '🤗',
+            'kiss': '😘', 'slap': '👋', 'punch': '👊', 'kick': '🦵',
+            'cuddle': '🫂', 'pat': '🫳', 'poke': '👉', 'blush': '😳',
+            'wave': '👋', 'wink': '😉', 'yeet': '🚀', 'bonk': '🔨',
+            'bite': '😬', 'nom': '😋', 'love': '❤️', 'heart': '💕',
+            'facepalm': '🤦', 'awkward': '😅', 'celebrate': '🎉',
+            'party': '🎊', 'think': '🤔', 'confused': '😕',
+            'cool': '😎', 'epic': '🔥', 'respect': '🙏',
+            'shy': '🥺', 'tired': '😩', 'sleep': '😴'
         };
         
         const emoji = emojiMap[category] || '🎬';
+        let caption = '';
         
         if (target) {
-            if (category === 'hug' || category === 'kiss' || category === 'cuddle' || 
-                category === 'love' || category === 'heart' || category === 'marry') {
-                caption = `${emoji} ${senderName} ${category}s ${targetName}! 💕`;
-            } else if (category === 'slap' || category === 'punch' || category === 'kick' || category === 'kill') {
-                caption = `${emoji} ${senderName} ${category}s ${targetName}! 💥`;
-            } else if (category === 'happy' || category === 'smile' || category === 'laugh' || category === 'dance') {
-                caption = `${emoji} ${senderName} is ${category} with ${targetName}! 🎉`;
-            } else if (category === 'sad' || category === 'cry') {
-                caption = `${emoji} ${senderName} is ${category} with ${targetName}! 😢`;
-            } else {
-                caption = `${emoji} ${senderName} ${category} ${targetName}!`;
-            }
+            const actionMap = {
+                'hug': 'hugs', 'kiss': 'kisses', 'slap': 'slaps', 'punch': 'punches',
+                'kick': 'kicks', 'cuddle': 'cuddles', 'pat': 'pats', 'poke': 'pokes',
+                'blush': 'blushes at', 'cry': 'cries with', 'happy': 'is happy with',
+                'dance': 'dances with', 'smile': 'smiles at', 'laugh': 'laughs with',
+                'wave': 'waves at', 'wink': 'winks at', 'yeet': 'yeets', 'bonk': 'bonks',
+                'bite': 'bites', 'nom': 'noms', 'love': 'loves', 'heart': 'hearts',
+                'facepalm': 'facepalms at', 'awkward': 'is awkward with',
+                'celebrate': 'celebrates with', 'party': 'parties with',
+                'think': 'thinks about', 'confused': 'is confused with',
+                'cool': 'is cool with', 'epic': 'is epic with',
+                'respect': 'respects', 'shy': 'is shy with',
+                'tired': 'is tired with', 'sleep': 'sleeps with',
+                'angry': 'is angry at', 'sad': 'is sad with'
+            };
+            const action = actionMap[category] || category + 's';
+            caption = `${emoji} ${senderName} ${action} ${targetName}!`;
         } else {
-            if (category === 'happy' || category === 'smile' || category === 'laugh') {
-                caption = `${emoji} ${senderName} is ${category}! 😊`;
-            } else if (category === 'sad' || category === 'cry') {
-                caption = `${emoji} ${senderName} is ${category}! 😢`;
-            } else if (category === 'dance' || category === 'party' || category === 'celebrate') {
-                caption = `${emoji} ${senderName} is ${category}! 🎉`;
-            } else {
-                caption = `${emoji} ${senderName} ${category}!`;
-            }
+            const selfMap = {
+                'hug': 'hugs themselves', 'kiss': 'blows a kiss',
+                'slap': 'slaps themselves', 'punch': 'punches the air',
+                'kick': 'kicks', 'cuddle': 'cuddles themselves',
+                'pat': 'pats themselves', 'poke': 'pokes',
+                'blush': 'blushes', 'cry': 'cries',
+                'happy': 'is happy', 'dance': 'dances',
+                'smile': 'smiles', 'laugh': 'laughs',
+                'wave': 'waves', 'wink': 'winks',
+                'yeet': 'yeets', 'bonk': 'bonks',
+                'bite': 'bites', 'nom': 'noms',
+                'love': 'loves', 'heart': 'hearts',
+                'facepalm': 'facepalms', 'awkward': 'is awkward',
+                'celebrate': 'celebrates', 'party': 'parties',
+                'think': 'thinks', 'confused': 'is confused',
+                'cool': 'is cool', 'epic': 'is epic',
+                'respect': 'respects', 'shy': 'is shy',
+                'tired': 'is tired', 'sleep': 'sleeps',
+                'angry': 'is angry', 'sad': 'is sad'
+            };
+            const action = selfMap[category] || category + 's';
+            caption = `${emoji} ${senderName} ${action}!`;
         }
         
-        // Add API source
         caption += `\n\n📡 *API:* ${usedApi}`;
         
-        // ─── SEND GIF ───
         const mentions = target ? [m.sender, target] : [m.sender];
         
-        await empire.sendMessage(m.chat, {
-            video: { url: gifUrl },
-            gifPlayback: true,
-            caption: caption,
-            mentions: mentions,
-            contextInfo: newsletterContext({ mentionedJid: mentions })
-        }, { quoted: m });
+        // ─── SEND GIF ───
+        try {
+            // Try sending as video with gifPlayback
+            await empire.sendMessage(m.chat, {
+                video: { url: gifUrl },
+                gifPlayback: true,
+                caption: caption,
+                mentions: mentions,
+                contextInfo: newsletterContext({ mentionedJid: mentions })
+            }, { quoted: m });
+        } catch (sendErr) {
+            // Fallback: Send as image if video fails
+            try {
+                await empire.sendMessage(m.chat, {
+                    image: { url: gifUrl },
+                    caption: caption,
+                    mentions: mentions,
+                    contextInfo: newsletterContext({ mentionedJid: mentions })
+                }, { quoted: m });
+            } catch (imgErr) {
+                // Final fallback: Send text only
+                await empire.sendMessage(m.chat, {
+                    text: `${caption}\n\n❌ GIF could not be displayed, but here's the reaction:`,
+                    mentions: mentions,
+                    contextInfo: newsletterContext({ mentionedJid: mentions })
+                }, { quoted: m });
+            }
+        }
         
     } catch (e) {
         console.error('GIF reaction error:', e);
@@ -1144,9 +1185,7 @@ ${prefix}gif cry @user`
     break;
 }
 
-// ═══════════════════════════════════════════════════
-// QUICK GIF REACTION SHORTCUTS
-// ═══════════════════════════════════════════════════
+// ─── QUICK REACTION SHORTCUTS ───
 case 'hug':
 case 'kiss':
 case 'slap':
@@ -1167,9 +1206,6 @@ case 'yeet':
 case 'bonk':
 case 'bite':
 case 'nom':
-case 'baka':
-case 'angry':
-case 'sad':
 case 'love':
 case 'heart':
 case 'facepalm':
@@ -1183,15 +1219,16 @@ case 'epic':
 case 'respect':
 case 'shy':
 case 'tired':
-case 'sleep': {
+case 'sleep':
+case 'angry':
+case 'sad': {
     // Re-run the gif command with the command as category
-    const args = [command];
     const target = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null);
+    const args = [command];
     if (target) args.push(`@${target.split('@')[0]}`);
-    // Recursively call the gif command
     const newText = args.join(' ');
-    // Manually execute the gif command logic
-    // We'll just pass the command as the category
+    
+    // Execute the gif command logic
     const category = command;
     const targetUser = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null);
     const senderName = '@' + m.sender.split('@')[0];
@@ -1202,67 +1239,120 @@ case 'sleep': {
     try {
         let gifUrl = null;
         let usedApi = '';
-        let searchQuery = command + ' reaction gif';
+        let attempts = 0;
+        const maxAttempts = 3;
         
-        // ─── TRY TENOR API ───
-        try {
-            const response = await axios.get('https://g.tenor.com/v1/search', {
-                params: {
-                    q: searchQuery,
-                    key: 'LIVDSRZULELA',
-                    limit: 20,
-                    media_filter: 'gif'
-                },
-                timeout: 15000
-            });
-            
-            if (response.data?.results?.length > 0) {
-                const randomIndex = Math.floor(Math.random() * Math.min(response.data.results.length, 20));
-                const result = response.data.results[randomIndex];
-                gifUrl = result.media[0]?.gif?.url || result.media[0]?.tinygif?.url;
-                usedApi = 'Tenor';
-            }
-        } catch (e) {}
+        const searchTerms = {
+            'hug': ['hug', 'cuddle', 'embrace'],
+            'kiss': ['kiss', 'romantic', 'love'],
+            'slap': ['slap', 'hit', 'face slap'],
+            'punch': ['punch', 'fight', 'hit'],
+            'kick': ['kick', 'fight'],
+            'cuddle': ['cuddle', 'hug', 'snuggle'],
+            'pat': ['pat', 'headpat', 'pet'],
+            'poke': ['poke', 'nudge'],
+            'blush': ['blush', 'embarrassed', 'shy'],
+            'cry': ['cry', 'crying', 'sad'],
+            'happy': ['happy', 'smile', 'joy'],
+            'dance': ['dance', 'dancing', 'party'],
+            'smile': ['smile', 'happy'],
+            'laugh': ['laugh', 'laughing', 'funny'],
+            'wave': ['wave', 'waving', 'hello'],
+            'wink': ['wink', 'winking'],
+            'yeet': ['yeet', 'throw', 'toss'],
+            'bonk': ['bonk', 'hit', 'bonk head'],
+            'bite': ['bite', 'chomp'],
+            'nom': ['nom', 'eat', 'munch'],
+            'love': ['love', 'heart', 'romantic'],
+            'heart': ['love', 'heart', 'romantic'],
+            'facepalm': ['facepalm', 'face palm', 'disappointed'],
+            'awkward': ['awkward', 'cringe', 'embarrassed'],
+            'celebrate': ['celebrate', 'party', 'celebration'],
+            'party': ['party', 'celebration', 'dance'],
+            'think': ['think', 'thinking', 'confused'],
+            'confused': ['confused', 'question', 'think'],
+            'cool': ['cool', 'awesome', 'epic'],
+            'epic': ['epic', 'awesome', 'cool'],
+            'respect': ['respect', 'honor', 'bow'],
+            'shy': ['shy', 'embarrassed', 'blush'],
+            'tired': ['tired', 'sleepy', 'exhausted'],
+            'sleep': ['sleep', 'tired', 'sleepy'],
+            'angry': ['angry', 'mad', 'rage'],
+            'sad': ['sad', 'cry', 'depressed']
+        };
         
-        // ─── TRY GIPHY API ───
-        if (!gifUrl) {
+        const searchQuery = (searchTerms[category] || [category]).join(' ') + ' reaction gif';
+        
+        const validateGifUrl = async (url) => {
             try {
-                const response = await axios.get('https://api.giphy.com/v1/gifs/search', {
-                    params: {
-                        q: searchQuery,
-                        api_key: 'F4uCUN2hq7QO1pk8B5nJk56T8X4Wfqh0',
-                        limit: 20,
-                        rating: 'g'
-                    },
+                const response = await axios.head(url, { timeout: 5000 });
+                return response.status === 200;
+            } catch {
+                return false;
+            }
+        };
+        
+        // ─── TRY TENOR ───
+        while (!gifUrl && attempts < maxAttempts) {
+            try {
+                const response = await axios.get('https://g.tenor.com/v1/search', {
+                    params: { q: searchQuery, key: 'LIVDSRZULELA', limit: 20, media_filter: 'gif' },
                     timeout: 15000
                 });
-                
-                if (response.data?.data?.length > 0) {
-                    const randomIndex = Math.floor(Math.random() * Math.min(response.data.data.length, 20));
-                    const result = response.data.data[randomIndex];
-                    gifUrl = result.images?.original?.url || result.images?.fixed_height?.url;
-                    usedApi = 'Giphy';
+                if (response.data?.results?.length > 0) {
+                    const shuffled = response.data.results.sort(() => Math.random() - 0.5);
+                    for (const result of shuffled) {
+                        const url = result.media[0]?.gif?.url || result.media[0]?.tinygif?.url;
+                        if (url && await validateGifUrl(url)) {
+                            gifUrl = url;
+                            usedApi = 'Tenor';
+                            break;
+                        }
+                    }
                 }
             } catch (e) {}
+            attempts++;
         }
         
-        // ─── FALLBACK: NEKOS.BEST ───
-        if (!gifUrl) {
+        // ─── TRY GIPHY ───
+        attempts = 0;
+        while (!gifUrl && attempts < maxAttempts) {
             try {
-                const animeCategories = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush', 'happy', 'wave', 'wink', 'yeet', 'bonk', 'kick', 'punch', 'bite', 'nom', 'baka'];
-                let fallbackCategory = command;
-                if (!animeCategories.includes(command)) {
-                    fallbackCategory = 'hug';
-                }
-                
-                const response = await axios.get(`https://nekos.best/api/v2/${fallbackCategory}`, {
-                    timeout: 10000
+                const response = await axios.get('https://api.giphy.com/v1/gifs/search', {
+                    params: { q: searchQuery, api_key: 'F4uCUN2hq7QO1pk8B5nJk56T8X4Wfqh0', limit: 20, rating: 'g' },
+                    timeout: 15000
                 });
-                if (response.data?.results?.[0]?.url) {
-                    gifUrl = response.data.results[0].url;
-                    usedApi = 'Nekos.best';
+                if (response.data?.data?.length > 0) {
+                    const shuffled = response.data.data.sort(() => Math.random() - 0.5);
+                    for (const result of shuffled) {
+                        const url = result.images?.original?.url || result.images?.fixed_height?.url;
+                        if (url && await validateGifUrl(url)) {
+                            gifUrl = url;
+                            usedApi = 'Giphy';
+                            break;
+                        }
+                    }
                 }
             } catch (e) {}
+            attempts++;
+        }
+        
+        // ─── TRY NEKOS.BEST ───
+        attempts = 0;
+        while (!gifUrl && attempts < maxAttempts) {
+            try {
+                const animeCats = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush', 'happy', 'wave', 'wink', 'yeet', 'bonk', 'kick', 'punch', 'bite', 'nom'];
+                let fallback = animeCats.includes(category) ? category : 'hug';
+                const response = await axios.get(`https://nekos.best/api/v2/${fallback}`, { timeout: 15000 });
+                if (response.data?.results?.[0]?.url) {
+                    const url = response.data.results[0].url;
+                    if (await validateGifUrl(url)) {
+                        gifUrl = url;
+                        usedApi = 'Nekos.best';
+                    }
+                }
+            } catch (e) {}
+            attempts++;
         }
         
         if (!gifUrl) {
@@ -1275,10 +1365,10 @@ case 'sleep': {
             'cuddle': '🫂', 'pat': '🫳', 'poke': '👉', 'blush': '😳', 'cry': '😭',
             'happy': '😊', 'dance': '💃', 'smile': '😊', 'laugh': '😂', 'wave': '👋',
             'wink': '😉', 'yeet': '🚀', 'bonk': '🔨', 'bite': '😬', 'nom': '😋',
-            'baka': '😤', 'angry': '😡', 'sad': '😢', 'love': '❤️', 'heart': '💕',
-            'facepalm': '🤦', 'awkward': '😅', 'celebrate': '🎉', 'party': '🎊',
-            'think': '🤔', 'confused': '😕', 'cool': '😎', 'epic': '🔥',
-            'respect': '🙏', 'shy': '🥺', 'tired': '😩', 'sleep': '😴'
+            'love': '❤️', 'heart': '💕', 'facepalm': '🤦', 'awkward': '😅',
+            'celebrate': '🎉', 'party': '🎊', 'think': '🤔', 'confused': '😕',
+            'cool': '😎', 'epic': '🔥', 'respect': '🙏', 'shy': '🥺',
+            'tired': '😩', 'sleep': '😴', 'angry': '😡', 'sad': '😢'
         };
         
         const emoji = emojiMap[command] || '🎬';
@@ -1291,12 +1381,13 @@ case 'sleep': {
                 'blush': 'blushes at', 'cry': 'cries with', 'happy': 'is happy with',
                 'dance': 'dances with', 'smile': 'smiles at', 'laugh': 'laughs with',
                 'wave': 'waves at', 'wink': 'winks at', 'yeet': 'yeets', 'bonk': 'bonks',
-                'bite': 'bites', 'nom': 'noms', 'baka': 'calls baka', 'angry': 'is angry at',
-                'sad': 'is sad with', 'love': 'loves', 'heart': 'hearts', 'facepalm': 'facepalms at',
-                'awkward': 'is awkward with', 'celebrate': 'celebrates with', 'party': 'parties with',
-                'think': 'thinks about', 'confused': 'is confused with', 'cool': 'is cool with',
-                'epic': 'is epic with', 'respect': 'respects', 'shy': 'is shy with',
-                'tired': 'is tired with', 'sleep': 'sleeps with'
+                'bite': 'bites', 'nom': 'noms', 'love': 'loves', 'heart': 'hearts',
+                'facepalm': 'facepalms at', 'awkward': 'is awkward with',
+                'celebrate': 'celebrates with', 'party': 'parties with',
+                'think': 'thinks about', 'confused': 'is confused with',
+                'cool': 'is cool with', 'epic': 'is epic with', 'respect': 'respects',
+                'shy': 'is shy with', 'tired': 'is tired with', 'sleep': 'sleeps with',
+                'angry': 'is angry at', 'sad': 'is sad with'
             };
             const action = actionMap[command] || command + 's';
             caption = `${emoji} ${senderName} ${action} ${targetName}!`;
@@ -1307,12 +1398,11 @@ case 'sleep': {
                 'pat': 'pats themselves', 'poke': 'pokes', 'blush': 'blushes', 'cry': 'cries',
                 'happy': 'is happy', 'dance': 'dances', 'smile': 'smiles', 'laugh': 'laughs',
                 'wave': 'waves', 'wink': 'winks', 'yeet': 'yeets', 'bonk': 'bonks',
-                'bite': 'bites', 'nom': 'noms', 'baka': 'is baka', 'angry': 'is angry',
-                'sad': 'is sad', 'love': 'loves', 'heart': 'hearts', 'facepalm': 'facepalms',
-                'awkward': 'is awkward', 'celebrate': 'celebrates', 'party': 'parties',
-                'think': 'thinks', 'confused': 'is confused', 'cool': 'is cool',
-                'epic': 'is epic', 'respect': 'respects', 'shy': 'is shy',
-                'tired': 'is tired', 'sleep': 'sleeps'
+                'bite': 'bites', 'nom': 'noms', 'love': 'loves', 'heart': 'hearts',
+                'facepalm': 'facepalms', 'awkward': 'is awkward', 'celebrate': 'celebrates',
+                'party': 'parties', 'think': 'thinks', 'confused': 'is confused',
+                'cool': 'is cool', 'epic': 'is epic', 'respect': 'respects', 'shy': 'is shy',
+                'tired': 'is tired', 'sleep': 'sleeps', 'angry': 'is angry', 'sad': 'is sad'
             };
             const action = selfMap[command] || command + 's';
             caption = `${emoji} ${senderName} ${action}!`;
@@ -1322,18 +1412,223 @@ case 'sleep': {
         
         const mentions = targetUser ? [m.sender, targetUser] : [m.sender];
         
-        await empire.sendMessage(m.chat, {
-            video: { url: gifUrl },
-            gifPlayback: true,
-            caption: caption,
-            mentions: mentions,
-            contextInfo: newsletterContext({ mentionedJid: mentions })
-        }, { quoted: m });
+        try {
+            await empire.sendMessage(m.chat, {
+                video: { url: gifUrl },
+                gifPlayback: true,
+                caption: caption,
+                mentions: mentions,
+                contextInfo: newsletterContext({ mentionedJid: mentions })
+            }, { quoted: m });
+        } catch (sendErr) {
+            try {
+                await empire.sendMessage(m.chat, {
+                    image: { url: gifUrl },
+                    caption: caption,
+                    mentions: mentions,
+                    contextInfo: newsletterContext({ mentionedJid: mentions })
+                }, { quoted: m });
+            } catch (imgErr) {
+                await empire.sendMessage(m.chat, {
+                    text: `${caption}\n\n❌ GIF could not be displayed.`,
+                    mentions: mentions,
+                    contextInfo: newsletterContext({ mentionedJid: mentions })
+                }, { quoted: m });
+            }
+        }
         
     } catch (e) {
         console.error('GIF reaction error:', e);
         reply(`❌ *Failed to get reaction GIF:* ${e.message || 'Unknown error'}`);
     }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// BOT MODE - Public / Private
+// ═══════════════════════════════════════════════════
+case 'mode':
+case 'botmode':
+case 'setmode': {
+    if (!isCreator) return reply('❌ *Only the bot owner can change bot mode.*');
+    
+    const opt = args[0]?.toLowerCase();
+    
+    // ─── SHOW CURRENT MODE ───
+    if (!opt) {
+        const mode = db.botMode?.mode || 'public';
+        const whitelist = db.botMode?.whitelist || [];
+        const whitelistDisplay = whitelist.length > 0 
+            ? whitelist.map(j => `  ✦ @${j.split('@')[0]}`).join('\n') 
+            : '  ✦ None';
+        
+        return reply(
+`🔒━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔒
+        ✦  BOT MODE  ✦
+🔒━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔒
+
+📊 *Current Mode:* ${mode.toUpperCase()}
+👥 *Whitelisted Users:* ${whitelist.length}
+
+👤 *Whitelist:*
+${whitelistDisplay}
+
+📌 *Commands:*
+✦ ${prefix}mode public     ⋮ Allow everyone
+✦ ${prefix}mode private    ⋮ Owner & whitelist only
+✦ ${prefix}mode whitelist  ⋮ Show whitelist
+✦ ${prefix}mode add @user  ⋮ Add to whitelist
+✦ ${prefix}mode remove @user ⋮ Remove from whitelist
+✦ ${prefix}mode clear      ⋮ Clear all whitelist
+
+🔒━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔒`
+        );
+    }
+    
+    // ─── SET TO PUBLIC MODE ───
+    if (opt === 'public') {
+        db.botMode.mode = 'public';
+        saveDB();
+        reply(
+`🌍 *MODE: PUBLIC*
+━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Everyone can use all commands.
+
+📌 *Private mode:*
+${prefix}mode private
+
+🌍━━━━━━━━━━━━━━━━━━━━━━━`
+        );
+        break;
+    }
+    
+    // ─── SET TO PRIVATE MODE ───
+    if (opt === 'private') {
+        db.botMode.mode = 'private';
+        saveDB();
+        reply(
+`🔒 *MODE: PRIVATE*
+━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Only the bot owner and whitelisted users can use commands.
+
+📌 *Add users:*
+${prefix}mode add @user
+
+📌 *Switch to public:*
+${prefix}mode public
+
+🔒━━━━━━━━━━━━━━━━━━━━━━━`
+        );
+        break;
+    }
+    
+    // ─── SHOW WHITELIST ───
+    if (opt === 'whitelist' || opt === 'wl' || opt === 'list') {
+        const whitelist = db.botMode?.whitelist || [];
+        if (whitelist.length === 0) {
+            return reply(
+`👤 *WHITELIST*
+━━━━━━━━━━━━━━━━━━━━━━━
+
+📌 *Whitelist is empty.*
+
+Add users with:
+${prefix}mode add @user
+
+👤━━━━━━━━━━━━━━━━━━━━━━━`
+            );
+        }
+        const list = whitelist.map((j, i) => `${i+1}. ✦ @${j.split('@')[0]}`).join('\n');
+        return reply(
+`👤━━━━━━━━━━━━━━━━━━━━━━━━━━━━━👤
+        ✦  WHITELIST  ✦
+👤━━━━━━━━━━━━━━━━━━━━━━━━━━━━━👤
+
+${list}
+
+👤━━━━━━━━━━━━━━━━━━━━━━━━━━━━━👤
+📊 *Total:* ${whitelist.length} users`
+        );
+    }
+    
+    // ─── ADD USER TO WHITELIST ───
+    if (opt === 'add' || opt === 'adduser') {
+        let target = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null) || args[1];
+        
+        if (!target) {
+            return reply(
+`❌ *Usage:*
+${prefix}mode add @user
+
+📌 *Or reply to a user's message:*
+${prefix}mode add`
+            );
+        }
+        
+        // Clean JID
+        target = target.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+        
+        // Check if already whitelisted
+        if (!db.botMode.whitelist) db.botMode.whitelist = [];
+        if (db.botMode.whitelist.includes(target)) {
+            return reply(`⚠️ @${target.split('@')[0]} is already whitelisted.`, { mentions: [target] });
+        }
+        
+        db.botMode.whitelist.push(target);
+        saveDB();
+        reply(`✅ @${target.split('@')[0]} has been added to the whitelist.`, { mentions: [target] });
+        break;
+    }
+    
+    // ─── REMOVE USER FROM WHITELIST ───
+    if (opt === 'remove' || opt === 'rem' || opt === 'del' || opt === 'delete') {
+        let target = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null) || args[1];
+        
+        if (!target) {
+            return reply(
+`❌ *Usage:*
+${prefix}mode remove @user
+
+📌 *Or reply to a user's message:*
+${prefix}mode remove`
+            );
+        }
+        
+        target = target.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+        
+        if (!db.botMode.whitelist) db.botMode.whitelist = [];
+        const index = db.botMode.whitelist.indexOf(target);
+        if (index === -1) {
+            return reply(`⚠️ @${target.split('@')[0]} is not in the whitelist.`, { mentions: [target] });
+        }
+        
+        db.botMode.whitelist.splice(index, 1);
+        saveDB();
+        reply(`✅ @${target.split('@')[0]} has been removed from the whitelist.`, { mentions: [target] });
+        break;
+    }
+    
+    // ─── CLEAR ALL WHITELIST ───
+    if (opt === 'clear' || opt === 'clearall' || opt === 'reset') {
+        db.botMode.whitelist = [];
+        saveDB();
+        reply(`✅ *Whitelist cleared!*\n\nAll users have been removed from the whitelist.`);
+        break;
+    }
+    
+    // ─── INVALID OPTION ───
+    reply(
+`❌ *Invalid option.*
+
+📌 *Available commands:*
+✦ ${prefix}mode public
+✦ ${prefix}mode private
+✦ ${prefix}mode whitelist
+✦ ${prefix}mode add @user
+✦ ${prefix}mode remove @user
+✦ ${prefix}mode clear`
+    );
     break;
 }
 // ═══════════════════════════════════════════════════
@@ -1811,40 +2106,53 @@ case 'ar': {
         // 3. STICKER - Image/Video to sticker
         // ═══════════════════════════════════════════════════
         case 'sticker':
-        case 'stiker':
-        case 's': {
-            try {
-                const quoted = m.quoted ? m.quoted : m;
-                const mime = quoted.mimetype || '';
-                if (!/image|video/.test(mime)) {
-                    return reply(`🖼️ Send/reply to an image or video with:\n${prefix}sticker`);
-                }
-                await reply('⏳ Creating sticker...');
-                const mediaBuffer = await empire.downloadMediaMessage(quoted);
-                if (!mediaBuffer || mediaBuffer.length === 0) {
-                    return reply('❌ Failed to download media.');
-                }
-                const { Sticker } = require('wa-sticker-formatter');
-                const sticker = new Sticker(mediaBuffer, {
-                    pack: global.packname || 'ZUKO XMD',
-                    author: global.OWNER_NAME || 'Zuko',
-                    type: /video/.test(mime) || mime.includes('gif') ? 'animated' : 'full',
-                    quality: 80,
-                    crop: false,
-                });
-                const stickerBuffer = await sticker.toBuffer();
-                if (!stickerBuffer || stickerBuffer.length === 0) {
-                    return reply('❌ Failed to create sticker.');
-                }
-                await empire.sendMessage(m.chat, { 
-                    sticker: stickerBuffer,
-                    contextInfo: newsletterContext()
-                }, { quoted: m });
-            } catch (e) {
-                reply(`❌ Sticker failed: ${e.message || 'Unknown error'}`);
-            }
-            break;
+case 'stiker':
+case 's': {
+    try {
+        const quoted = m.quoted ? m.quoted : m;
+        const mime = quoted.mimetype || '';
+        
+        if (!/image|video/.test(mime)) {
+            return reply(`🖼️ Send/reply to an image or video with:\n${prefix}sticker`);
         }
+        
+        await reply('⏳ Creating sticker...');
+        
+        const mediaBuffer = await empire.downloadMediaMessage(quoted);
+        if (!mediaBuffer || mediaBuffer.length === 0) {
+            return reply('❌ Failed to download media.');
+        }
+        
+        // Use wa-sticker-formatter (doesn't require FFmpeg for images)
+        const { Sticker } = require('wa-sticker-formatter');
+        
+        const isAnimated = /video/.test(mime) || mime.includes('gif');
+        
+        const sticker = new Sticker(mediaBuffer, {
+            pack: global.packname || 'ZUKO XMD',
+            author: global.OWNER_NAME || 'Zuko',
+            type: isAnimated ? 'animated' : 'full',
+            quality: 80,
+            crop: false,
+        });
+        
+        const stickerBuffer = await sticker.toBuffer();
+        
+        if (!stickerBuffer || stickerBuffer.length === 0) {
+            return reply('❌ Failed to create sticker.');
+        }
+        
+        await empire.sendMessage(m.chat, { 
+            sticker: stickerBuffer,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        
+    } catch (e) {
+        console.error('Sticker error:', e);
+        reply(`❌ Sticker failed: ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
 
         // ═══════════════════════════════════════════════════
 // PLAY - Download song from YouTube (FIXED with api.js)
@@ -1852,61 +2160,64 @@ case 'ar': {
 case 'play':
 case 'song':
 case 'ytmp3': {
-    if (!text) return reply(`🎵 Usage: ${prefix}play <song name or URL>\nExample: ${prefix}play Khai With You`);
+    if (!text) return reply(`🎵 Usage: ${prefix}play <song name or URL>`);
     await reply('🔍 Searching and processing...');
+    
     try {
-        let videoUrl = null;
-        let videoTitle = null;
-        let thumbnail = null;
-        
-        // ─── CHECK IF INPUT IS A YOUTUBE URL ───
+        // ─── GET VIDEO INFO ───
+        let video;
         if (text.includes('youtube.com') || text.includes('youtu.be')) {
-            videoUrl = text;
-            // Extract video ID to get title
+            video = { url: text };
             const videoId = text.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
             if (videoId) {
                 try {
                     const search = await yts({ videoId });
                     if (search) {
-                        videoTitle = search.title;
-                        thumbnail = search.thumbnail;
+                        video.title = search.title;
+                        video.thumbnail = search.thumbnail;
                     }
                 } catch (e) {}
             }
-            if (!videoTitle) videoTitle = 'YouTube Video';
+            if (!video.title) video.title = 'YouTube Audio';
         } else {
-            // ─── SEARCH YOUTUBE ───
             const search = await yts(text);
-            if (!search || !search.videos || !search.videos.length) {
-                return reply('❌ No results found for your query.');
+            if (!search || !search.videos?.length) {
+                return reply('❌ No results found.');
             }
-            const video = search.videos[0];
-            videoUrl = video.url;
-            videoTitle = video.title;
-            thumbnail = video.thumbnail;
+            video = search.videos[0];
         }
         
-        // ─── SEND THUMBNAIL WITH INFO ───
-        if (thumbnail) {
+        // ─── SEND THUMBNAIL ───
+        if (video.thumbnail) {
             await empire.sendMessage(m.chat, {
-                image: { url: thumbnail },
-                caption: `🎵 *Downloading:* ${videoTitle}\n⏱ *Please wait...*`,
-                contextInfo: newsletterContext()
+                image: { url: video.thumbnail },
+                caption: `🎵 *Downloading:* ${video.title}\n⏱ *Please wait...*`
             }, { quoted: m });
         }
         
-        // ─── IMPORT API METHODS ───
+        // ─── DOWNLOAD AUDIO USING API.JS ───
         const APIs = require('./api.js');
-        
-        // ─── TRY MULTIPLE API METHODS ───
         let audioData = null;
         let usedApi = '';
         
+        // Try all API methods in order
         const apiMethods = [
-            { name: 'EliteProTech', method: () => APIs.getEliteProTechDownloadByUrl(videoUrl) },
-            { name: 'Yupra', method: () => APIs.getYupraDownloadByUrl(videoUrl) },
-            { name: 'Okatsu', method: () => APIs.getOkatsuDownloadByUrl(videoUrl) },
-            { name: 'Izumi', method: () => APIs.getIzumiDownloadByUrl(videoUrl) }
+            { 
+                name: 'EliteProTech', 
+                method: () => APIs.getEliteProTechDownloadByUrl(video.url) 
+            },
+            { 
+                name: 'Yupra', 
+                method: () => APIs.getYupraDownloadByUrl(video.url) 
+            },
+            { 
+                name: 'Okatsu', 
+                method: () => APIs.getOkatsuDownloadByUrl(video.url) 
+            },
+            { 
+                name: 'Izumi', 
+                method: () => APIs.getIzumiDownloadByUrl(video.url) 
+            }
         ];
         
         for (const apiMethod of apiMethods) {
@@ -1921,15 +2232,16 @@ case 'ytmp3': {
                 }
             } catch (err) {
                 console.log(`❌ ${apiMethod.name} failed:`, err.message);
-                continue;
             }
         }
         
         if (!audioData || !audioData.download) {
-            return reply('❌ All download sources failed. The content may be unavailable or blocked.');
+            return reply('❌ All download sources failed. Please try another song.');
         }
         
-        // ─── DOWNLOAD THE AUDIO FILE ───
+        // ─── DOWNLOAD AUDIO FILE ───
+        console.log(`📥 Downloading audio from: ${audioData.download}`);
+        
         const audioResponse = await axios.get(audioData.download, {
             responseType: 'arraybuffer',
             timeout: 120000,
@@ -1937,58 +2249,117 @@ case 'ytmp3': {
             maxBodyLength: Infinity,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': '*/*'
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive'
             }
         });
         
         let audioBuffer = Buffer.from(audioResponse.data);
         
-        if (!audioBuffer || audioBuffer.length === 0) {
-            return reply('❌ Failed to download audio file.');
+        // ─── VALIDATE AUDIO ───
+        if (!audioBuffer || audioBuffer.length < 1000) {
+            return reply('❌ Downloaded audio file is too small or corrupted.');
         }
         
-        // ─── CHECK IF IT'S VALID AUDIO ───
-        // MP3 files start with ID3 or have MPEG frame sync
-        const isMP3 = audioBuffer.toString('ascii', 0, 3) === 'ID3' || 
-                     (audioBuffer[0] === 0xFF && (audioBuffer[1] & 0xE0) === 0xE0);
+        console.log(`📊 Audio size: ${(audioBuffer.length / 1024).toFixed(1)} KB`);
         
-        if (!isMP3 && audioBuffer.length > 100) {
-            // Try to convert if it's not MP3
+        // ─── CONVERT TO WHATSAPP COMPATIBLE FORMAT ───
+        try {
+            const { toWhatsAppAudio } = require('./lib/converter.js');
+            
+            // Detect format
+            let format = 'm4a';
+            const header = audioBuffer.toString('ascii', 0, 4);
+            if (header === 'OggS') format = 'ogg';
+            else if (header === 'RIFF') format = 'wav';
+            else if (header === 'ftyp') format = 'mp4';
+            else if (audioBuffer.toString('ascii', 0, 3) === 'ID3') format = 'mp3';
+            else if (audioBuffer[0] === 0xFF && (audioBuffer[1] & 0xE0) === 0xE0) format = 'mp3';
+            
+            console.log(`🔄 Converting audio (${format} → MP3)...`);
+            
+            const convertedBuffer = await toWhatsAppAudio(audioBuffer, format);
+            if (convertedBuffer && convertedBuffer.length > 1000) {
+                audioBuffer = convertedBuffer;
+                console.log(`✅ Conversion successful! Size: ${(audioBuffer.length / 1024).toFixed(1)} KB`);
+            }
+        } catch (convErr) {
+            console.log('⚠️ Conversion error:', convErr.message);
+            
+            // ─── FALLBACK: Try basic FFmpeg ───
             try {
                 const { toAudio } = require('./lib/converter.js');
-                let format = 'm4a';
-                if (audioBuffer.toString('ascii', 0, 4) === 'OggS') format = 'ogg';
-                else if (audioBuffer.toString('ascii', 0, 4) === 'RIFF') format = 'wav';
-                
-                const converted = await toAudio(audioBuffer, format);
-                if (converted && converted.length > 0) {
+                const converted = await toAudio(audioBuffer, 'mp4');
+                if (converted && converted.length > 1000) {
                     audioBuffer = converted;
+                    console.log('✅ Fallback conversion succeeded!');
                 }
-            } catch (convErr) {
-                console.log('Conversion skipped:', convErr.message);
+            } catch (e) {
+                console.log('❌ Fallback conversion failed:', e.message);
             }
         }
         
-        // ─── SEND AUDIO ───
-        const title = (audioData.title || videoTitle || 'song').replace(/[^\w\s-]/g, '');
-        await empire.sendMessage(m.chat, {
-            audio: audioBuffer,
-            mimetype: 'audio/mpeg',
-            fileName: `${title}.mp3`,
-            ptt: false,
-            contextInfo: newsletterContext()
-        }, { quoted: m });
+        // ─── FINAL CHECK ───
+        const isMP3 = audioBuffer.toString('ascii', 0, 3) === 'ID3' || 
+                     (audioBuffer[0] === 0xFF && (audioBuffer[1] & 0xE0) === 0xE0);
         
-        // ─── SUCCESS LOG ───
-        console.log(`✅ Song sent: ${title} (via ${usedApi})`);
+        if (!isMP3) {
+            console.log('⚠️ Audio may not be MP3 format, but attempting to send...');
+        }
+        
+        // ─── SEND AUDIO ───
+        const title = (audioData.title || video.title || 'audio').replace(/[^\w\s-]/g, '');
+        
+        try {
+            await empire.sendMessage(m.chat, {
+                audio: audioBuffer,
+                mimetype: 'audio/mpeg',
+                fileName: `${title}.mp3`,
+                ptt: false,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+            console.log(`✅ Audio sent: ${title} (via ${usedApi})`);
+            
+        } catch (sendErr) {
+            console.error('Send error:', sendErr);
+            
+            // ─── ALTERNATIVE: Try sending as voice note ───
+            try {
+                await empire.sendMessage(m.chat, {
+                    audio: audioBuffer,
+                    mimetype: 'audio/ogg; codecs=opus',
+                    ptt: true,
+                    fileName: `${title}.ogg`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+                
+                console.log(`✅ Sent as voice note: ${title}`);
+            } catch (pttErr) {
+                // ─── FINAL FALLBACK: Send as document ───
+                try {
+                    await empire.sendMessage(m.chat, {
+                        document: audioBuffer,
+                        mimetype: 'audio/mpeg',
+                        fileName: `${title}.mp3`,
+                        caption: `🎵 *${title}*\n\n⚠️ Audio sent as document due to playback issues.`,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                    
+                    console.log(`✅ Sent as document: ${title}`);
+                } catch (docErr) {
+                    throw new Error(`Failed to send audio: ${docErr.message}`);
+                }
+            }
+        }
         
     } catch (err) {
         console.error('Play command error:', err);
-        reply(`❌ Failed to download song: ${err.message || 'Unknown error'}`);
+        reply(`❌ Failed to download: ${err.message || 'Unknown error'}`);
     }
     break;
 }
-
       case 'ai':
       case 'ask':
       case 'chat':
