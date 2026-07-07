@@ -13,6 +13,7 @@ let { fromBuffer } = require('file-type')
 let fs = require('fs')
 const child_process = require('child_process')
 const ffmpeg = require('fluent-ffmpeg')
+ffmpeg.setFfmpegPath(require('../lib/ffmpegPath'))
 
 const {unlink } = require ('fs').promises
 
