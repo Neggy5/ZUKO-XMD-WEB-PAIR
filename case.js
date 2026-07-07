@@ -1,13 +1,4 @@
-// =====================================================================
-// ZUKO XMD - CORE BOT (22 COMMANDS)
-// =====================================================================
-// Commands:
-// 1. ping, 2. menu, 3. sticker, 4. play, 5. ai, 6. tts, 7. translate,
-// 8. antilink, 9. antisticker, 10. antitag, 11. antiviewonce, 12. anticall,
-// 13. antidelete, 14. antibot, 15. tagall, 16. groupinfo,
-// 17. promote/demote/kick, 18. jail/unjail, 19. balance, 20. owner,
-// 21. welcome, 22. goodbye
-// =====================================================================
+
 
 require('./setting/config');
 const {
@@ -22,6 +13,7 @@ const axios = require('axios');
 const moment = require('moment-timezone');
 const { getSetting, setSetting } = require("./setting/Settings.js");
 const { toAudio, toPTT } = require('./lib/converter.js');
+const ffmpegPath = require('./lib/ffmpegPath');
 const { addExif } = require('./allfunc/exif.js');
 const yts = require('yt-search');
 
@@ -708,25 +700,43 @@ case 'help': {
   ✦ Mode       : ${db.botMode?.mode || 'public'}
 
 ◈────────────────────────◈
-◇ 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦
+◇ COMMANDS
 ◈────────────────────────◈
 
   ✦ ${prefix}ping           
   ✦ ${prefix}menu           
   ✦ ${prefix}sticker        
+  ✦ ${prefix}deepseek <question>  
+  ✦ ${prefix}ds <question>       
   ✦ ${prefix}play <song>    
   ✦ ${prefix}ai <question>  
+  ✦ ${prefix}imagine <prompt>  
+  ✦ ${prefix}img <prompt>      
+  ✦ ${prefix}flux <prompt>     
   ✦ ${prefix}tts <text>     
   ✦ ${prefix}translate      
+  ✦ ${prefix}tiktok <url>      
   ✦ ${prefix}toimage        
   ✦ ${prefix}getpp @user    
+  ✦ ${prefix}apkdl <app>    
+  ✦ ${prefix}apk <app>      
   ✦ ${prefix}setpp          
   ✦ ${prefix}toaudio        
   ✦ ${prefix}togif          
   ✦ ${prefix}toptt          
 
 ◈────────────────────────◈
-◇ 𝗣𝗥𝗢𝗧𝗘𝗖𝗧𝗜𝗢𝗡𝗦
+◇ FOOTBALL LIVESCORES 
+◈────────────────────────◈
+
+✦ ${prefix}football        
+✦ ${prefix}football live  
+✦ ${prefix}football today 
+✦ ${prefix}football search <team> 
+✦ ${prefix}football stats 
+
+◈────────────────────────◈
+◇ PROTECTIONS
 ◈────────────────────────◈
 
   ✦ ${prefix}antilink       
@@ -738,7 +748,7 @@ case 'help': {
   ✦ ${prefix}antibot        
 
 ◈────────────────────────◈
-◇ 𝗚𝗥𝗢𝗨𝗣 𝗠𝗚𝗠𝗧
+◇ GROUP MANAGEMENT 
 ◈────────────────────────◈
 
   ✦ ${prefix}tagall <msg>   
@@ -757,7 +767,7 @@ case 'help': {
   ✦ ${prefix}goodbye        
 
 ◈────────────────────────◈
-◇ 𝗠𝗜𝗦𝗖
+◇ MISC
 ◈────────────────────────◈
   ✦ ${prefix}mode           
   ✦ ${prefix}mode add @user
@@ -840,609 +850,238 @@ case 'help': {
     break;
 }
 // ═══════════════════════════════════════════════════
+// TIKTOK DOWNLOAD COMMAND
+// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// TIKTOK DOWNLOAD COMMAND (Using wa-sticker-formatter)
+// ═══════════════════════════════════════════════════
+case 'tiktok':
+case 'tt':
+case 'ttdl': {
+    if (!text) return reply(`🎵 *TikTok Downloader*\n\nUsage: ${prefix}tiktok <url>\nExample: ${prefix}tiktok https://vm.tiktok.com/ZMrgKWmVd`);
+    
+    if (!text.includes('tiktok.com') && !text.includes('vm.tiktok.com')) {
+        return reply('❌ Please provide a valid TikTok video URL.');
+    }
+    
+    await reply('📥 *Processing TikTok video...* Please wait.');
+    
+    try {
+        // ─── CALL TIKTOK API ───
+        const apiUrl = `https://api.princetechn.com/api/download/tiktok?apikey=prince&url=${encodeURIComponent(text)}`;
+        const response = await axios.get(apiUrl, { 
+            timeout: 30000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (!response.data?.success || !response.data?.result) {
+            return reply('❌ Failed to fetch TikTok video. The video may be private or unavailable.');
+        }
+        
+        const result = response.data.result;
+        const videoUrl = result.video;
+        const musicUrl = result.music;
+        const coverUrl = result.cover;
+        const title = result.title || 'TikTok Video';
+        const duration = result.duration || 0;
+        const author = result.author?.name || 'Unknown';
+        
+        if (!videoUrl) {
+            return reply('❌ No video URL found. The video may be unavailable.');
+        }
+        
+        // ─── SEND THUMBNAIL WITH INFO ───
+        if (coverUrl) {
+            try {
+                await empire.sendMessage(m.chat, {
+                    image: { url: coverUrl },
+                    caption: `🎵 *${title || 'TikTok Video'}*\n\n👤 *Author:* @${author}\n⏱️ *Duration:* ${duration}s\n📥 *Downloading and processing...*`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            } catch (e) {}
+        }
+        
+        // ─── DOWNLOAD VIDEO ───
+        await reply('⏳ *Downloading video...*');
+        
+        const videoResponse = await axios.get(videoUrl, {
+            responseType: 'arraybuffer',
+            timeout: 60000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': '*/*'
+            }
+        });
+        
+        let videoBuffer = Buffer.from(videoResponse.data);
+        
+        if (!videoBuffer || videoBuffer.length < 1000) {
+            return reply('❌ Failed to download video. The file may be corrupted.');
+        }
+        
+        // ─── SEND VIDEO ───
+        // TikTok's downloaded MP4 is already WhatsApp-playable, so it's sent
+        // directly. (Previously this ran the buffer through wa-sticker-formatter
+        // as an "animated sticker," which not only needs ffmpeg internally too,
+        // but returns a WEBP sticker buffer — sending that mislabeled as a
+        // `video` is why the result wouldn't play. No conversion is needed here.)
+        try {
+            await empire.sendMessage(m.chat, {
+                video: videoBuffer,
+                caption: `🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+        ✦  TIKTOK VIDEO  ✦
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵
+
+📝 *Title:* ${title || 'No title'}
+👤 *Author:* @${author}
+⏱️ *Duration:* ${duration}s
+📦 *Size:* ${(videoBuffer.length / 1024 / 1024).toFixed(1)} MB
+
+🎵━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎵`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        } catch (sendErr) {
+            console.error('TikTok video send error:', sendErr);
+            // ─── FALLBACK: Send as document ───
+            await reply('⚠️ *Sending as file...*');
+            await empire.sendMessage(m.chat, {
+                document: videoBuffer,
+                mimetype: 'video/mp4',
+                fileName: `TikTok_${author}_${Date.now()}.mp4`,
+                caption: `🎵 *TikTok Video*\n👤 @${author}\n📝 ${title}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        }
+        
+        // ─── SEND AUDIO (Works already) ───
+        if (musicUrl) {
+            try {
+                const audioResponse = await axios.get(musicUrl, {
+                    responseType: 'arraybuffer',
+                    timeout: 30000
+                });
+                const audioBuffer = Buffer.from(audioResponse.data);
+                
+                if (audioBuffer && audioBuffer.length > 1000) {
+                    await empire.sendMessage(m.chat, {
+                        audio: audioBuffer,
+                        mimetype: 'audio/mpeg',
+                        fileName: `${author}_${Date.now()}.mp3`,
+                        ptt: false,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                }
+            } catch (e) {
+                console.log('Audio download failed:', e.message);
+            }
+        }
+        
+    } catch (e) {
+        console.error('TikTok download error:', e);
+        reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// APK DOWNLOAD COMMAND (FIXED - Downloads actual file)
+// ═══════════════════════════════════════════════════
+case 'apkdl':
+case 'apk':
+case 'downloadapk': {
+    if (!text) return reply(`📱 *APK Downloader*\n\nUsage: ${prefix}apkdl <app name>\nExample: ${prefix}apkdl WhatsApp`);
+    
+    await reply(`🔍 *Searching for APK:* ${text}`);
+    
+    try {
+        // ─── GET APK INFO ───
+        const apiUrl = `https://api.princetechn.com/api/download/apkdl?apikey=prince&appName=${encodeURIComponent(text)}`;
+        const response = await axios.get(apiUrl, { 
+            timeout: 30000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (!response.data?.success || !response.data?.result) {
+            return reply(`❌ *App not found:* ${text}\n\nTry a different search term.`);
+        }
+        
+        const result = response.data.result;
+        const downloadUrl = result.download_url;
+        
+        if (!downloadUrl) {
+            return reply(`❌ *No download URL found for:* ${text}`);
+        }
+        
+        await reply(`📥 *Downloading APK...* (This may take a moment)`);
+        
+        // ─── DOWNLOAD THE ACTUAL APK FILE ───
+        const apkResponse = await axios.get(downloadUrl, {
+            responseType: 'arraybuffer',
+            timeout: 120000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': '*/*'
+            }
+        });
+        
+        const apkBuffer = Buffer.from(apkResponse.data);
+        
+        if (!apkBuffer || apkBuffer.length < 10000) {
+            return reply(`❌ *Download failed:* File too small or corrupted.`);
+        }
+        
+        const fileSizeMB = (apkBuffer.length / 1024 / 1024).toFixed(1);
+        const fileName = `${result.appname || 'app'}_${Date.now()}.apk`.replace(/[^a-zA-Z0-9._-]/g, '_');
+        
+        // ─── SEND APK FILE ───
+        await empire.sendMessage(m.chat, {
+            document: apkBuffer,
+            mimetype: 'application/vnd.android.package-archive',
+            fileName: fileName,
+            caption: `📱━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📱
+        ✦  APK READY  ✦
+📱━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📱
+
+📛 *App:* ${result.appname || 'Unknown'}
+👤 *Developer:* ${result.developer || 'Unknown'}
+📦 *Size:* ${fileSizeMB} MB
+📂 *Type:* APK File
+
+📱━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📱
+⚠️ *Scan before installing!*`,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        
+        console.log(`✅ APK sent: ${fileName} (${fileSizeMB} MB)`);
+        
+    } catch (e) {
+        console.error('APK download error:', e);
+        
+        // ─── HANDLE SPECIFIC ERRORS ───
+        if (e.code === 'ECONNABORTED') {
+            reply(`❌ *Download timed out.* The file may be too large or the server is slow.\n\nTry again with a stable connection.`);
+        } else if (e.response?.status === 404) {
+            reply(`❌ *File not found.* The download link may be expired.\n\nTry searching again.`);
+        } else {
+            reply(`❌ *Failed to download APK:* ${e.message || 'Unknown error'}`);
+        }
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
 // GIF REACTION COMMANDS
 // ═══════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════
 // GIF REACTION COMMANDS (FIXED)
 // ═══════════════════════════════════════════════════
-case 'gif':
-case 'reaction':
-case 'reactgif': {
-    if (!text) {
-        return reply(
-`🎬 *GIF REACTION COMMANDS*
 
-Usage: ${prefix}gif <category> [@user]
-
-📌 *Categories:*
-happy, sad, angry, hug, kiss, slap, punch, kick,
-cuddle, pat, poke, blush, cry, dance, smile,
-laugh, wave, wink, yeet, bonk, love, heart,
-facepalm, awkward, celebrate, party, think,
-confused, cool, epic, respect, shy, tired, sleep
-
-📌 *Examples:*
-${prefix}gif hug @user
-${prefix}gif slap @user
-${prefix}gif dance`
-        );
-    }
-    
-    const args = text.trim().split(/\s+/);
-    const category = args[0].toLowerCase();
-    const target = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null);
-    const senderName = '@' + m.sender.split('@')[0];
-    const targetName = target ? '@' + target.split('@')[0] : null;
-    
-    await reply('🎬 *Searching for reaction GIF...*');
-    
-    try {
-        let gifUrl = null;
-        let usedApi = '';
-        let attempts = 0;
-        const maxAttempts = 3;
-        
-        // ─── CATEGORY MAPPING ───
-        const searchTerms = {
-            'happy': ['happy', 'smile', 'joy'],
-            'smile': ['smile', 'happy'],
-            'laugh': ['laugh', 'laughing', 'funny'],
-            'dance': ['dance', 'dancing', 'party'],
-            'sad': ['sad', 'cry', 'depressed'],
-            'cry': ['cry', 'crying', 'sad'],
-            'angry': ['angry', 'mad', 'rage'],
-            'hug': ['hug', 'cuddle', 'embrace'],
-            'kiss': ['kiss', 'romantic', 'love'],
-            'slap': ['slap', 'hit', 'face slap'],
-            'punch': ['punch', 'fight', 'hit'],
-            'kick': ['kick', 'fight'],
-            'cuddle': ['cuddle', 'hug', 'snuggle'],
-            'pat': ['pat', 'headpat', 'pet'],
-            'poke': ['poke', 'nudge'],
-            'blush': ['blush', 'embarrassed', 'shy'],
-            'wave': ['wave', 'waving', 'hello'],
-            'wink': ['wink', 'winking'],
-            'yeet': ['yeet', 'throw', 'toss'],
-            'bonk': ['bonk', 'hit', 'bonk head'],
-            'bite': ['bite', 'chomp'],
-            'nom': ['nom', 'eat', 'munch'],
-            'love': ['love', 'heart', 'romantic'],
-            'heart': ['love', 'heart', 'romantic'],
-            'facepalm': ['facepalm', 'face palm', 'disappointed'],
-            'awkward': ['awkward', 'cringe', 'embarrassed'],
-            'celebrate': ['celebrate', 'party', 'celebration'],
-            'party': ['party', 'celebration', 'dance'],
-            'think': ['think', 'thinking', 'confused'],
-            'confused': ['confused', 'question', 'think'],
-            'cool': ['cool', 'awesome', 'epic'],
-            'epic': ['epic', 'awesome', 'cool'],
-            'respect': ['respect', 'honor', 'bow'],
-            'shy': ['shy', 'embarrassed', 'blush'],
-            'tired': ['tired', 'sleepy', 'exhausted'],
-            'sleep': ['sleep', 'tired', 'sleepy']
-        };
-        
-        const searchQuery = (searchTerms[category] || [category]).join(' ') + ' reaction gif';
-        
-        // ─── FUNCTION TO VALIDATE GIF URL ───
-        const validateGifUrl = async (url) => {
-            try {
-                const response = await axios.head(url, { timeout: 5000 });
-                return response.status === 200;
-            } catch {
-                return false;
-            }
-        };
-        
-        // ─── TRY 1: TENOR API ───
-        while (!gifUrl && attempts < maxAttempts) {
-            try {
-                const response = await axios.get('https://g.tenor.com/v1/search', {
-                    params: {
-                        q: searchQuery,
-                        key: 'LIVDSRZULELA',
-                        limit: 20,
-                        media_filter: 'gif'
-                    },
-                    timeout: 15000
-                });
-                
-                if (response.data?.results?.length > 0) {
-                    // Shuffle results for randomness
-                    const shuffled = response.data.results.sort(() => Math.random() - 0.5);
-                    
-                    for (const result of shuffled) {
-                        const url = result.media[0]?.gif?.url || result.media[0]?.tinygif?.url;
-                        if (url) {
-                            const isValid = await validateGifUrl(url);
-                            if (isValid) {
-                                gifUrl = url;
-                                usedApi = 'Tenor';
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('❌ Tenor API failed:', e.message);
-            }
-            attempts++;
-        }
-        
-        // ─── TRY 2: GIPHY API ───
-        attempts = 0;
-        while (!gifUrl && attempts < maxAttempts) {
-            try {
-                const response = await axios.get('https://api.giphy.com/v1/gifs/search', {
-                    params: {
-                        q: searchQuery,
-                        api_key: 'F4uCUN2hq7QO1pk8B5nJk56T8X4Wfqh0',
-                        limit: 20,
-                        rating: 'g'
-                    },
-                    timeout: 15000
-                });
-                
-                if (response.data?.data?.length > 0) {
-                    const shuffled = response.data.data.sort(() => Math.random() - 0.5);
-                    
-                    for (const result of shuffled) {
-                        const url = result.images?.original?.url || result.images?.fixed_height?.url;
-                        if (url) {
-                            const isValid = await validateGifUrl(url);
-                            if (isValid) {
-                                gifUrl = url;
-                                usedApi = 'Giphy';
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('❌ Giphy API failed:', e.message);
-            }
-            attempts++;
-        }
-        
-        // ─── TRY 3: NEKOS.BEST (Anime) ───
-        attempts = 0;
-        while (!gifUrl && attempts < maxAttempts) {
-            try {
-                const animeCategories = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush', 'happy', 'wave', 'wink', 'yeet', 'bonk', 'kick', 'punch', 'bite', 'nom'];
-                let fallbackCategory = 'hug';
-                if (animeCategories.includes(category)) {
-                    fallbackCategory = category;
-                }
-                
-                const response = await axios.get(`https://nekos.best/api/v2/${fallbackCategory}`, {
-                    timeout: 15000
-                });
-                
-                if (response.data?.results?.[0]?.url) {
-                    const url = response.data.results[0].url;
-                    const isValid = await validateGifUrl(url);
-                    if (isValid) {
-                        gifUrl = url;
-                        usedApi = 'Nekos.best';
-                    }
-                }
-            } catch (e) {
-                console.log('❌ Nekos.best API failed:', e.message);
-            }
-            attempts++;
-        }
-        
-        // ─── TRY 4: WAIFU.PICS (Anime) ───
-        attempts = 0;
-        while (!gifUrl && attempts < maxAttempts) {
-            try {
-                const animeCategories = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush'];
-                let fallbackCategory = 'hug';
-                if (animeCategories.includes(category)) {
-                    fallbackCategory = category;
-                }
-                
-                const response = await axios.get(`https://api.waifu.pics/sfw/${fallbackCategory}`, {
-                    timeout: 15000
-                });
-                
-                if (response.data?.url) {
-                    const url = response.data.url;
-                    const isValid = await validateGifUrl(url);
-                    if (isValid) {
-                        gifUrl = url;
-                        usedApi = 'Waifu.pics';
-                    }
-                }
-            } catch (e) {
-                console.log('❌ Waifu.pics API failed:', e.message);
-            }
-            attempts++;
-        }
-        
-        // ─── TRY 5: DIRECT URL FROM CATEGORY (Fallback) ───
-        if (!gifUrl) {
-            const fallbackUrls = {
-                'hug': 'https://media.tenor.com/pHXqZkZCcAAAAAC/anime-hug.gif',
-                'kiss': 'https://media.tenor.com/3m9PqRfWgZAAAAAC/anime-kiss.gif',
-                'slap': 'https://media.tenor.com/6L5M5mQ5A5AAAAAC/anime-slap.gif',
-                'cry': 'https://media.tenor.com/5N5k5d5f5g5AAAAAC/anime-cry.gif',
-                'happy': 'https://media.tenor.com/4M4j4e4h4i4AAAAAC/anime-happy.gif',
-                'dance': 'https://media.tenor.com/3N3k3d3f3g3AAAAAC/anime-dance.gif'
-            };
-            
-            if (fallbackUrls[category]) {
-                const url = fallbackUrls[category];
-                const isValid = await validateGifUrl(url);
-                if (isValid) {
-                    gifUrl = url;
-                    usedApi = 'Fallback';
-                }
-            }
-        }
-        
-        if (!gifUrl) {
-            return reply('❌ No reaction GIF found. Please try another category or try again later.');
-        }
-        
-        // ─── BUILD CAPTION ───
-        const emojiMap = {
-            'happy': '😊', 'smile': '😊', 'laugh': '😂', 'dance': '💃',
-            'sad': '😢', 'cry': '😭', 'angry': '😡', 'hug': '🤗',
-            'kiss': '😘', 'slap': '👋', 'punch': '👊', 'kick': '🦵',
-            'cuddle': '🫂', 'pat': '🫳', 'poke': '👉', 'blush': '😳',
-            'wave': '👋', 'wink': '😉', 'yeet': '🚀', 'bonk': '🔨',
-            'bite': '😬', 'nom': '😋', 'love': '❤️', 'heart': '💕',
-            'facepalm': '🤦', 'awkward': '😅', 'celebrate': '🎉',
-            'party': '🎊', 'think': '🤔', 'confused': '😕',
-            'cool': '😎', 'epic': '🔥', 'respect': '🙏',
-            'shy': '🥺', 'tired': '😩', 'sleep': '😴'
-        };
-        
-        const emoji = emojiMap[category] || '🎬';
-        let caption = '';
-        
-        if (target) {
-            const actionMap = {
-                'hug': 'hugs', 'kiss': 'kisses', 'slap': 'slaps', 'punch': 'punches',
-                'kick': 'kicks', 'cuddle': 'cuddles', 'pat': 'pats', 'poke': 'pokes',
-                'blush': 'blushes at', 'cry': 'cries with', 'happy': 'is happy with',
-                'dance': 'dances with', 'smile': 'smiles at', 'laugh': 'laughs with',
-                'wave': 'waves at', 'wink': 'winks at', 'yeet': 'yeets', 'bonk': 'bonks',
-                'bite': 'bites', 'nom': 'noms', 'love': 'loves', 'heart': 'hearts',
-                'facepalm': 'facepalms at', 'awkward': 'is awkward with',
-                'celebrate': 'celebrates with', 'party': 'parties with',
-                'think': 'thinks about', 'confused': 'is confused with',
-                'cool': 'is cool with', 'epic': 'is epic with',
-                'respect': 'respects', 'shy': 'is shy with',
-                'tired': 'is tired with', 'sleep': 'sleeps with',
-                'angry': 'is angry at', 'sad': 'is sad with'
-            };
-            const action = actionMap[category] || category + 's';
-            caption = `${emoji} ${senderName} ${action} ${targetName}!`;
-        } else {
-            const selfMap = {
-                'hug': 'hugs themselves', 'kiss': 'blows a kiss',
-                'slap': 'slaps themselves', 'punch': 'punches the air',
-                'kick': 'kicks', 'cuddle': 'cuddles themselves',
-                'pat': 'pats themselves', 'poke': 'pokes',
-                'blush': 'blushes', 'cry': 'cries',
-                'happy': 'is happy', 'dance': 'dances',
-                'smile': 'smiles', 'laugh': 'laughs',
-                'wave': 'waves', 'wink': 'winks',
-                'yeet': 'yeets', 'bonk': 'bonks',
-                'bite': 'bites', 'nom': 'noms',
-                'love': 'loves', 'heart': 'hearts',
-                'facepalm': 'facepalms', 'awkward': 'is awkward',
-                'celebrate': 'celebrates', 'party': 'parties',
-                'think': 'thinks', 'confused': 'is confused',
-                'cool': 'is cool', 'epic': 'is epic',
-                'respect': 'respects', 'shy': 'is shy',
-                'tired': 'is tired', 'sleep': 'sleeps',
-                'angry': 'is angry', 'sad': 'is sad'
-            };
-            const action = selfMap[category] || category + 's';
-            caption = `${emoji} ${senderName} ${action}!`;
-        }
-        
-        caption += `\n\n📡 *API:* ${usedApi}`;
-        
-        const mentions = target ? [m.sender, target] : [m.sender];
-        
-        // ─── SEND GIF ───
-        try {
-            // Try sending as video with gifPlayback
-            await empire.sendMessage(m.chat, {
-                video: { url: gifUrl },
-                gifPlayback: true,
-                caption: caption,
-                mentions: mentions,
-                contextInfo: newsletterContext({ mentionedJid: mentions })
-            }, { quoted: m });
-        } catch (sendErr) {
-            // Fallback: Send as image if video fails
-            try {
-                await empire.sendMessage(m.chat, {
-                    image: { url: gifUrl },
-                    caption: caption,
-                    mentions: mentions,
-                    contextInfo: newsletterContext({ mentionedJid: mentions })
-                }, { quoted: m });
-            } catch (imgErr) {
-                // Final fallback: Send text only
-                await empire.sendMessage(m.chat, {
-                    text: `${caption}\n\n❌ GIF could not be displayed, but here's the reaction:`,
-                    mentions: mentions,
-                    contextInfo: newsletterContext({ mentionedJid: mentions })
-                }, { quoted: m });
-            }
-        }
-        
-    } catch (e) {
-        console.error('GIF reaction error:', e);
-        reply(`❌ *Failed to get reaction GIF:* ${e.message || 'Unknown error'}`);
-    }
-    break;
-}
-
-// ─── QUICK REACTION SHORTCUTS ───
-case 'hug':
-case 'kiss':
-case 'slap':
-case 'punch':
-case 'kick':
-case 'cuddle':
-case 'pat':
-case 'poke':
-case 'blush':
-case 'cry':
-case 'happy':
-case 'dance':
-case 'smile':
-case 'laugh':
-case 'wave':
-case 'wink':
-case 'yeet':
-case 'bonk':
-case 'bite':
-case 'nom':
-case 'love':
-case 'heart':
-case 'facepalm':
-case 'awkward':
-case 'celebrate':
-case 'party':
-case 'think':
-case 'confused':
-case 'cool':
-case 'epic':
-case 'respect':
-case 'shy':
-case 'tired':
-case 'sleep':
-case 'angry':
-case 'sad': {
-    // Re-run the gif command with the command as category
-    const target = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null);
-    const args = [command];
-    if (target) args.push(`@${target.split('@')[0]}`);
-    const newText = args.join(' ');
-    
-    // Execute the gif command logic
-    const category = command;
-    const targetUser = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null);
-    const senderName = '@' + m.sender.split('@')[0];
-    const targetName = targetUser ? '@' + targetUser.split('@')[0] : null;
-    
-    await reply('🎬 *Searching for reaction GIF...*');
-    
-    try {
-        let gifUrl = null;
-        let usedApi = '';
-        let attempts = 0;
-        const maxAttempts = 3;
-        
-        const searchTerms = {
-            'hug': ['hug', 'cuddle', 'embrace'],
-            'kiss': ['kiss', 'romantic', 'love'],
-            'slap': ['slap', 'hit', 'face slap'],
-            'punch': ['punch', 'fight', 'hit'],
-            'kick': ['kick', 'fight'],
-            'cuddle': ['cuddle', 'hug', 'snuggle'],
-            'pat': ['pat', 'headpat', 'pet'],
-            'poke': ['poke', 'nudge'],
-            'blush': ['blush', 'embarrassed', 'shy'],
-            'cry': ['cry', 'crying', 'sad'],
-            'happy': ['happy', 'smile', 'joy'],
-            'dance': ['dance', 'dancing', 'party'],
-            'smile': ['smile', 'happy'],
-            'laugh': ['laugh', 'laughing', 'funny'],
-            'wave': ['wave', 'waving', 'hello'],
-            'wink': ['wink', 'winking'],
-            'yeet': ['yeet', 'throw', 'toss'],
-            'bonk': ['bonk', 'hit', 'bonk head'],
-            'bite': ['bite', 'chomp'],
-            'nom': ['nom', 'eat', 'munch'],
-            'love': ['love', 'heart', 'romantic'],
-            'heart': ['love', 'heart', 'romantic'],
-            'facepalm': ['facepalm', 'face palm', 'disappointed'],
-            'awkward': ['awkward', 'cringe', 'embarrassed'],
-            'celebrate': ['celebrate', 'party', 'celebration'],
-            'party': ['party', 'celebration', 'dance'],
-            'think': ['think', 'thinking', 'confused'],
-            'confused': ['confused', 'question', 'think'],
-            'cool': ['cool', 'awesome', 'epic'],
-            'epic': ['epic', 'awesome', 'cool'],
-            'respect': ['respect', 'honor', 'bow'],
-            'shy': ['shy', 'embarrassed', 'blush'],
-            'tired': ['tired', 'sleepy', 'exhausted'],
-            'sleep': ['sleep', 'tired', 'sleepy'],
-            'angry': ['angry', 'mad', 'rage'],
-            'sad': ['sad', 'cry', 'depressed']
-        };
-        
-        const searchQuery = (searchTerms[category] || [category]).join(' ') + ' reaction gif';
-        
-        const validateGifUrl = async (url) => {
-            try {
-                const response = await axios.head(url, { timeout: 5000 });
-                return response.status === 200;
-            } catch {
-                return false;
-            }
-        };
-        
-        // ─── TRY TENOR ───
-        while (!gifUrl && attempts < maxAttempts) {
-            try {
-                const response = await axios.get('https://g.tenor.com/v1/search', {
-                    params: { q: searchQuery, key: 'LIVDSRZULELA', limit: 20, media_filter: 'gif' },
-                    timeout: 15000
-                });
-                if (response.data?.results?.length > 0) {
-                    const shuffled = response.data.results.sort(() => Math.random() - 0.5);
-                    for (const result of shuffled) {
-                        const url = result.media[0]?.gif?.url || result.media[0]?.tinygif?.url;
-                        if (url && await validateGifUrl(url)) {
-                            gifUrl = url;
-                            usedApi = 'Tenor';
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {}
-            attempts++;
-        }
-        
-        // ─── TRY GIPHY ───
-        attempts = 0;
-        while (!gifUrl && attempts < maxAttempts) {
-            try {
-                const response = await axios.get('https://api.giphy.com/v1/gifs/search', {
-                    params: { q: searchQuery, api_key: 'F4uCUN2hq7QO1pk8B5nJk56T8X4Wfqh0', limit: 20, rating: 'g' },
-                    timeout: 15000
-                });
-                if (response.data?.data?.length > 0) {
-                    const shuffled = response.data.data.sort(() => Math.random() - 0.5);
-                    for (const result of shuffled) {
-                        const url = result.images?.original?.url || result.images?.fixed_height?.url;
-                        if (url && await validateGifUrl(url)) {
-                            gifUrl = url;
-                            usedApi = 'Giphy';
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {}
-            attempts++;
-        }
-        
-        // ─── TRY NEKOS.BEST ───
-        attempts = 0;
-        while (!gifUrl && attempts < maxAttempts) {
-            try {
-                const animeCats = ['hug', 'kiss', 'slap', 'pat', 'poke', 'cuddle', 'cry', 'smile', 'dance', 'blush', 'happy', 'wave', 'wink', 'yeet', 'bonk', 'kick', 'punch', 'bite', 'nom'];
-                let fallback = animeCats.includes(category) ? category : 'hug';
-                const response = await axios.get(`https://nekos.best/api/v2/${fallback}`, { timeout: 15000 });
-                if (response.data?.results?.[0]?.url) {
-                    const url = response.data.results[0].url;
-                    if (await validateGifUrl(url)) {
-                        gifUrl = url;
-                        usedApi = 'Nekos.best';
-                    }
-                }
-            } catch (e) {}
-            attempts++;
-        }
-        
-        if (!gifUrl) {
-            return reply(`❌ No reaction GIF found for "${command}". Try another reaction.`);
-        }
-        
-        // ─── BUILD CAPTION ───
-        const emojiMap = {
-            'hug': '🤗', 'kiss': '😘', 'slap': '👋', 'punch': '👊', 'kick': '🦵',
-            'cuddle': '🫂', 'pat': '🫳', 'poke': '👉', 'blush': '😳', 'cry': '😭',
-            'happy': '😊', 'dance': '💃', 'smile': '😊', 'laugh': '😂', 'wave': '👋',
-            'wink': '😉', 'yeet': '🚀', 'bonk': '🔨', 'bite': '😬', 'nom': '😋',
-            'love': '❤️', 'heart': '💕', 'facepalm': '🤦', 'awkward': '😅',
-            'celebrate': '🎉', 'party': '🎊', 'think': '🤔', 'confused': '😕',
-            'cool': '😎', 'epic': '🔥', 'respect': '🙏', 'shy': '🥺',
-            'tired': '😩', 'sleep': '😴', 'angry': '😡', 'sad': '😢'
-        };
-        
-        const emoji = emojiMap[command] || '🎬';
-        let caption = '';
-        
-        if (targetUser) {
-            const actionMap = {
-                'hug': 'hugs', 'kiss': 'kisses', 'slap': 'slaps', 'punch': 'punches',
-                'kick': 'kicks', 'cuddle': 'cuddles', 'pat': 'pats', 'poke': 'pokes',
-                'blush': 'blushes at', 'cry': 'cries with', 'happy': 'is happy with',
-                'dance': 'dances with', 'smile': 'smiles at', 'laugh': 'laughs with',
-                'wave': 'waves at', 'wink': 'winks at', 'yeet': 'yeets', 'bonk': 'bonks',
-                'bite': 'bites', 'nom': 'noms', 'love': 'loves', 'heart': 'hearts',
-                'facepalm': 'facepalms at', 'awkward': 'is awkward with',
-                'celebrate': 'celebrates with', 'party': 'parties with',
-                'think': 'thinks about', 'confused': 'is confused with',
-                'cool': 'is cool with', 'epic': 'is epic with', 'respect': 'respects',
-                'shy': 'is shy with', 'tired': 'is tired with', 'sleep': 'sleeps with',
-                'angry': 'is angry at', 'sad': 'is sad with'
-            };
-            const action = actionMap[command] || command + 's';
-            caption = `${emoji} ${senderName} ${action} ${targetName}!`;
-        } else {
-            const selfMap = {
-                'hug': 'hugs themselves', 'kiss': 'blows a kiss', 'slap': 'slaps themselves',
-                'punch': 'punches the air', 'kick': 'kicks', 'cuddle': 'cuddles themselves',
-                'pat': 'pats themselves', 'poke': 'pokes', 'blush': 'blushes', 'cry': 'cries',
-                'happy': 'is happy', 'dance': 'dances', 'smile': 'smiles', 'laugh': 'laughs',
-                'wave': 'waves', 'wink': 'winks', 'yeet': 'yeets', 'bonk': 'bonks',
-                'bite': 'bites', 'nom': 'noms', 'love': 'loves', 'heart': 'hearts',
-                'facepalm': 'facepalms', 'awkward': 'is awkward', 'celebrate': 'celebrates',
-                'party': 'parties', 'think': 'thinks', 'confused': 'is confused',
-                'cool': 'is cool', 'epic': 'is epic', 'respect': 'respects', 'shy': 'is shy',
-                'tired': 'is tired', 'sleep': 'sleeps', 'angry': 'is angry', 'sad': 'is sad'
-            };
-            const action = selfMap[command] || command + 's';
-            caption = `${emoji} ${senderName} ${action}!`;
-        }
-        
-        caption += `\n\n📡 *API:* ${usedApi}`;
-        
-        const mentions = targetUser ? [m.sender, targetUser] : [m.sender];
-        
-        try {
-            await empire.sendMessage(m.chat, {
-                video: { url: gifUrl },
-                gifPlayback: true,
-                caption: caption,
-                mentions: mentions,
-                contextInfo: newsletterContext({ mentionedJid: mentions })
-            }, { quoted: m });
-        } catch (sendErr) {
-            try {
-                await empire.sendMessage(m.chat, {
-                    image: { url: gifUrl },
-                    caption: caption,
-                    mentions: mentions,
-                    contextInfo: newsletterContext({ mentionedJid: mentions })
-                }, { quoted: m });
-            } catch (imgErr) {
-                await empire.sendMessage(m.chat, {
-                    text: `${caption}\n\n❌ GIF could not be displayed.`,
-                    mentions: mentions,
-                    contextInfo: newsletterContext({ mentionedJid: mentions })
-                }, { quoted: m });
-            }
-        }
-        
-    } catch (e) {
-        console.error('GIF reaction error:', e);
-        reply(`❌ *Failed to get reaction GIF:* ${e.message || 'Unknown error'}`);
-    }
-    break;
-}
 // ═══════════════════════════════════════════════════
 // BOT MODE - Public / Private
 // ═══════════════════════════════════════════════════
@@ -1668,7 +1307,7 @@ case 'img': {
                 
                 fs.writeFileSync(inputPath, mediaBuffer);
                 await new Promise((resolve, reject) => {
-                    exec(`ffmpeg -i "${inputPath}" "${outputPath}"`, (error) => {
+                    exec(`"${ffmpegPath}" -i "${inputPath}" "${outputPath}"`, (error) => {
                         if (error) reject(error);
                         else resolve();
                     });
@@ -1858,7 +1497,7 @@ case 'tomp4': {
                 
                 fs.writeFileSync(inputPath, mediaBuffer);
                 await new Promise((resolve, reject) => {
-                    exec(`ffmpeg -i "${inputPath}" -vf "fps=15,scale=512:512:force_original_aspect_ratio=decrease" -c:v libx264 -pix_fmt yuv420p "${outputPath}"`, (error) => {
+                    exec(`"${ffmpegPath}" -i "${inputPath}" -vf "fps=15,scale=512:512:force_original_aspect_ratio=decrease" -c:v libx264 -pix_fmt yuv420p "${outputPath}"`, (error) => {
                         if (error) reject(error);
                         else resolve();
                     });
@@ -1992,7 +1631,499 @@ case 'resetgrouplink': {
     }
     break;
 }
+// ═══════════════════════════════════════════════════
+// FOOTBALL LIVESCORE COMMAND
+// ═══════════════════════════════════════════════════
+case 'football':
+case 'livescore':
+case 'scores':
+case 'match': {
+    try {
+        await reply('⚽ *Fetching live football scores...*');
+        
+        const apiUrl = 'https://api.princetechn.com/api/football/livescore?apikey=prince';
+        const response = await axios.get(apiUrl, { 
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (!response.data?.success || !response.data?.result?.matches) {
+            return reply('❌ Failed to fetch live scores. Please try again later.');
+        }
+        
+        const data = response.data.result;
+        const matches = data.matches;
+        const totalMatches = data.totalMatches || matches.length;
+        
+        // ─── PARSE ARGUMENTS ───
+        const opt = args[0]?.toLowerCase();
+        
+        // ─── SHOW STATS ───
+        if (opt === 'stats' || opt === 'info') {
+            const leagues = [...new Set(matches.map(m => m.league))];
+            const liveMatches = matches.filter(m => m.status === '2nd Half' || m.status === '1st Half' || m.status === 'Half Time');
+            const finishedMatches = matches.filter(m => m.status === 'Full Time' || m.status === 'Full Time (ET)' || m.status === 'Full Time (PEN)');
+            const upcomingMatches = matches.filter(m => m.status === 'Not Started');
+            
+            let statsText = 
+`⚽━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚽
+        ✦  LIVE SCORE STATS  ✦
+⚽━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚽
 
+📊 *Total Matches:* ${totalMatches}
+🔴 *Live Now:* ${liveMatches.length}
+✅ *Finished:* ${finishedMatches.length}
+⏳ *Upcoming:* ${upcomingMatches.length}
+
+📋 *Leagues:* ${leagues.length}
+
+⚽━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚽
+💡 *Commands:*
+✦ ${prefix}football         ⋮ All matches
+✦ ${prefix}football live    ⋮ Live matches only
+✦ ${prefix}football today   ⋮ Today's matches
+✦ ${prefix}football league  ⋮ Group by league
+✦ ${prefix}football search <team> ⋮ Search team
+✦ ${prefix}football stats   ⋮ This stats`;
+
+            return reply(statsText);
+        }
+        
+        // ─── LIVE MATCHES ONLY ───
+        if (opt === 'live' || opt === 'now') {
+            const liveMatches = matches.filter(m => 
+                m.status === '2nd Half' || 
+                m.status === '1st Half' || 
+                m.status === 'Half Time' ||
+                m.status === 'Live'
+            );
+            
+            if (liveMatches.length === 0) {
+                return reply('🔴 *No live matches at the moment.*');
+            }
+            
+            let liveText = 
+`🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔴
+        ✦  LIVE MATCHES  ✦
+🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔴
+📊 *${liveMatches.length} matches live*
+`;
+            
+            for (const match of liveMatches) {
+                const statusEmoji = match.status === '2nd Half' ? '🟢' : '🟡';
+                liveText += `
+${statusEmoji} *${match.homeTeam}* vs *${match.awayTeam}*
+   📊 ${match.homeScore} - ${match.awayScore} (HT: ${match.halfTimeScore})
+   🏆 ${match.league}
+   ⏱️ ${match.minute || 'Live'}`;
+            }
+            
+            liveText += `
+🔴━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔴`;
+            return reply(liveText);
+        }
+        
+        // ─── TODAY'S MATCHES ───
+        if (opt === 'today') {
+            const today = new Date().toISOString().split('T')[0];
+            const todayMatches = matches.filter(m => m.date === today);
+            
+            if (todayMatches.length === 0) {
+                return reply(`📅 *No matches scheduled for today (${today}).*`);
+            }
+            
+            let todayText = 
+`📅━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📅
+        ✦  TODAY'S MATCHES  ✦
+📅━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📅
+📊 *${todayMatches.length} matches today*
+`;
+            
+            const grouped = {};
+            for (const match of todayMatches) {
+                if (!grouped[match.league]) grouped[match.league] = [];
+                grouped[match.league].push(match);
+            }
+            
+            for (const [league, leagueMatches] of Object.entries(grouped)) {
+                todayText += `\n🏆 *${league}*\n`;
+                for (const match of leagueMatches) {
+                    const statusIcon = match.status === 'Full Time' ? '✅' : 
+                                      match.status === '2nd Half' || match.status === '1st Half' ? '🟢' : '⏳';
+                    todayText += `   ${statusIcon} ${match.homeTeam} vs ${match.awayTeam}`;
+                    if (match.status === 'Full Time' || match.status === '2nd Half') {
+                        todayText += ` (${match.homeScore}-${match.awayScore})`;
+                    }
+                    if (match.time) todayText += ` ⏱️ ${match.time}`;
+                    todayText += `\n`;
+                }
+            }
+            
+            todayText += `
+📅━━━━━━━━━━━━━━━━━━━━━━━━━━━━━📅`;
+            return reply(todayText);
+        }
+        
+        // ─── SEARCH TEAM ───
+        if (opt === 'search' && args[1]) {
+            const query = args.slice(1).join(' ').toLowerCase();
+            const foundMatches = matches.filter(m => 
+                m.homeTeam.toLowerCase().includes(query) || 
+                m.awayTeam.toLowerCase().includes(query)
+            );
+            
+            if (foundMatches.length === 0) {
+                return reply(`🔍 *No matches found for:* ${query}`);
+            }
+            
+            let searchText = 
+`🔍━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔍
+        ✦  SEARCH RESULTS  ✦
+🔍━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔍
+📊 *${foundMatches.length} matches found*
+`;
+            
+            for (const match of foundMatches) {
+                const statusIcon = match.status === 'Full Time' ? '✅' : 
+                                  match.status === '2nd Half' || match.status === '1st Half' ? '🟢' : '⏳';
+                searchText += `
+${statusIcon} *${match.homeTeam}* vs *${match.awayTeam}*
+   📊 ${match.homeScore} - ${match.awayScore}
+   🏆 ${match.league}
+   ⏱️ ${match.status} ${match.time || ''}`;
+            }
+            
+            searchText += `
+🔍━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🔍`;
+            return reply(searchText);
+        }
+        
+        // ─── GROUP BY LEAGUE ───
+        if (opt === 'league' || opt === 'leagues') {
+            const leagues = {};
+            for (const match of matches) {
+                if (!leagues[match.league]) leagues[match.league] = [];
+                leagues[match.league].push(match);
+            }
+            
+            let leagueText = 
+`🏆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🏆
+        ✦  LEAGUES  ✦
+🏆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🏆
+📊 *${Object.keys(leagues).length} leagues*
+`;
+            
+            // Show top 20 leagues
+            const sortedLeagues = Object.entries(leagues)
+                .sort((a, b) => b[1].length - a[1].length)
+                .slice(0, 20);
+            
+            for (const [league, leagueMatches] of sortedLeagues) {
+                const liveCount = leagueMatches.filter(m => 
+                    m.status === '2nd Half' || m.status === '1st Half' || m.status === 'Half Time'
+                ).length;
+                const statusIcon = liveCount > 0 ? '🟢' : '📋';
+                leagueText += `\n${statusIcon} *${league}* (${leagueMatches.length} matches)`;
+                if (liveCount > 0) leagueText += ` 🔴 ${liveCount} live`;
+            }
+            
+            leagueText += `
+🏆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🏆
+💡 ${prefix}football search <team>`;
+            return reply(leagueText);
+        }
+        
+        // ─── DEFAULT: SHOW ALL MATCHES ───
+        let matchText = 
+`⚽━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚽
+        ✦  FOOTBALL SCORES  ✦
+⚽━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚽
+📊 *${totalMatches} matches*
+`;
+        
+        // Show matches grouped by status
+        const statuses = ['Full Time', '2nd Half', '1st Half', 'Not Started'];
+        const statusEmojis = {
+            'Full Time': '✅',
+            '2nd Half': '🟢',
+            '1st Half': '🟡',
+            'Half Time': '🟡',
+            'Live': '🟢',
+            'Not Started': '⏳'
+        };
+        
+        let shown = 0;
+        const maxShow = 30; // Limit to avoid message too long
+        
+        for (const status of statuses) {
+            const filtered = matches.filter(m => m.status === status);
+            if (filtered.length === 0) continue;
+            
+            const emoji = statusEmojis[status] || '⚽';
+            matchText += `\n\n${emoji} *${status.toUpperCase()}* (${filtered.length})`;
+            
+            for (const match of filtered.slice(0, 10)) {
+                if (shown >= maxShow) break;
+                const score = match.status === 'Full Time' || match.status.includes('Half') || match.status === 'Live' || match.status === '2nd Half'
+                    ? ` (${match.homeScore}-${match.awayScore})`
+                    : '';
+                matchText += `\n   ✦ ${match.homeTeam} vs ${match.awayTeam}${score}`;
+                if (match.time && match.status === 'Not Started') {
+                    matchText += ` ⏱️ ${match.time}`;
+                }
+                shown++;
+            }
+            if (filtered.length > 10 && shown < maxShow) {
+                matchText += `\n   ... and ${filtered.length - 10} more`;
+            }
+            if (shown >= maxShow) break;
+        }
+        
+        matchText += `
+⚽━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚽
+💡 ${prefix}football live   ⋮ Live matches
+💡 ${prefix}football today  ⋮ Today's matches
+💡 ${prefix}football search <team>`;
+        
+        // Split if too long
+        if (matchText.length > 4000) {
+            matchText = matchText.slice(0, 3950) + '\n...\n\n📌 *Too many matches. Use filters:*\n' +
+                `✦ ${prefix}football live\n✦ ${prefix}football today\n✦ ${prefix}football league`;
+        }
+        
+        await empire.sendMessage(m.chat, {
+            text: matchText,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        
+    } catch (err) {
+        console.error('Football score error:', err);
+        reply(`❌ *Failed to fetch football scores:* ${err.message || 'Network error'}`);
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// IMAGINE / FLUX IMAGE GENERATION COMMAND
+// ═══════════════════════════════════════════════════
+case 'imagine':
+case 'generate':
+case 'flux':
+case 'fluximg':
+case 'aiimage': {
+    if (!text) return reply(`🖼️ Usage: ${prefix}imagine <prompt>\nExample: ${prefix}imagine A handsome gentleman`);
+    await reply(`🎨 *Generating image for:* ${text}`);
+    try {
+        // ─── CALL PRINCE TECHNO FLUX API ───
+        const apiUrl = `https://api.princetechn.com/api/ai/fluximg?apikey=prince&prompt=${encodeURIComponent(text)}`;
+        const response = await axios.get(apiUrl, { 
+            timeout: 60000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (response.data?.success && response.data?.result) {
+            const imageUrl = response.data.result;
+            
+            // ─── SEND GENERATED IMAGE ───
+            await empire.sendMessage(m.chat, {
+                image: { url: imageUrl },
+                caption: `🖼️ *Generated Image*\n📝 Prompt: ${text}\n📡 API: Prince Techno Flux\n⏱️ Generated: ${new Date().toLocaleString()}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+        } else {
+            throw new Error('Invalid response from Flux API');
+        }
+        
+    } catch (e) {
+        console.error('Flux image error:', e);
+        
+        // ─── FALLBACK 1: Pollinations.ai ───
+        try {
+            await reply('🔄 *Flux unavailable, trying Pollinations.ai...*');
+            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(text)}?width=1024&height=1024&nologo=true`;
+            
+            await empire.sendMessage(m.chat, {
+                image: { url: fallbackUrl },
+                caption: `🖼️ *Generated Image (Pollinations.ai)*\n📝 Prompt: ${text}\n⏱️ Generated: ${new Date().toLocaleString()}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+        } catch (fallbackErr) {
+            // ─── FALLBACK 2: Lexica.art ───
+            try {
+                await reply('🔄 *Trying Lexica.art...*');
+                const lexicaUrl = `https://lexica.art/api/v1/search?q=${encodeURIComponent(text)}`;
+                const lexicaRes = await axios.get(lexicaUrl, { timeout: 15000 });
+                
+                if (lexicaRes.data?.images?.length > 0) {
+                    const imageUrl = lexicaRes.data.images[0].src;
+                    await empire.sendMessage(m.chat, {
+                        image: { url: imageUrl },
+                        caption: `🖼️ *Generated Image (Lexica)*\n📝 Prompt: ${text}\n⏱️ Generated: ${new Date().toLocaleString()}`,
+                        contextInfo: newsletterContext()
+                    }, { quoted: m });
+                } else {
+                    throw new Error('No images found on Lexica');
+                }
+            } catch (finalErr) {
+                reply(`❌ *Failed to generate image:* ${e.message || 'Unknown error'}`);
+            }
+        }
+    }
+    break;
+}
+
+// ─── QUICK IMAGE GENERATION SHORTCUT ───
+case 'img':
+case 'draw': {
+    // Re-run imagine command
+    const cmd = 'imagine';
+    const args = [text];
+    // Recursively call imagine
+    const tempText = text;
+    // Execute imagine logic
+    if (!tempText) return reply(`🖼️ Usage: ${prefix}img <prompt>\nExample: ${prefix}img A cat riding a unicorn`);
+    
+    await reply(`🎨 *Generating image for:* ${tempText}`);
+    try {
+        const apiUrl = `https://api.princetechn.com/api/ai/fluximg?apikey=prince&prompt=${encodeURIComponent(tempText)}`;
+        const response = await axios.get(apiUrl, { timeout: 60000 });
+        
+        if (response.data?.success && response.data?.result) {
+            await empire.sendMessage(m.chat, {
+                image: { url: response.data.result },
+                caption: `🖼️ *Generated Image*\n📝 Prompt: ${tempText}\n📡 API: Prince Techno Flux`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        } else {
+            // Fallback to Pollinations
+            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(tempText)}?width=1024&height=1024&nologo=true`;
+            await empire.sendMessage(m.chat, {
+                image: { url: fallbackUrl },
+                caption: `🖼️ *Generated Image (Pollinations)*\n📝 Prompt: ${tempText}`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+        }
+    } catch (e) {
+        reply(`❌ *Failed to generate image:* ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// AI COMMAND - Prince Techno Gemini API
+// ═══════════════════════════════════════════════════
+case 'ai':
+case 'ask':
+case 'chat':
+case 'gemini': {
+    if (!text) return reply(`🤖 Usage: ${prefix}ai <question>\nExample: ${prefix}ai What is life?`);
+    await reply('🤔 Thinking...');
+    try {
+        let answer = null;
+        let usedApi = '';
+        
+        // ─── TRY 1: PRINCE TECHNO GEMINI API ───
+        try {
+            const apiUrl = `https://api.princetechn.com/api/ai/geminiai?apikey=prince&q=${encodeURIComponent(text)}`;
+            const response = await axios.get(apiUrl, { 
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            
+            if (response.data?.success && response.data?.result) {
+                answer = response.data.result;
+                usedApi = 'Prince Techno Gemini';
+                console.log('✅ Prince Techno Gemini API succeeded');
+            }
+        } catch (e) {
+            console.log('❌ Prince Techno Gemini API failed:', e.message);
+        }
+        
+        // ─── TRY 2: SHIZO API (Fallback) ───
+        if (!answer) {
+            try {
+                const res = await axios.get(
+                    `https://api.shizo.top/ai/gpt?apikey=shizo&query=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (res.data?.status && res.data?.result) {
+                    answer = res.data.result;
+                    usedApi = 'Shizo GPT';
+                    console.log('✅ Shizo API responded');
+                }
+            } catch (e) {
+                console.log('❌ Shizo API failed:', e.message);
+            }
+        }
+        
+        // ─── TRY 3: SIPUTZX AI API (Fallback) ───
+        if (!answer) {
+            try {
+                const res = await axios.get(
+                    `https://api.siputzx.my.id/api/ai/gpt?query=${encodeURIComponent(text)}`,
+                    { timeout: 30000 }
+                );
+                if (res.data?.status && res.data?.data?.message) {
+                    answer = res.data.data.message;
+                    usedApi = 'Siputzx AI';
+                    console.log('✅ Siputzx AI responded');
+                }
+            } catch (e) {
+                console.log('❌ Siputzx AI failed:', e.message);
+            }
+        }
+        
+        // ─── TRY 4: POLLINATIONS AI (Final Fallback) ───
+        if (!answer) {
+            try {
+                const res = await axios.get(
+                    `https://text.pollinations.ai/${encodeURIComponent(text)}`,
+                    { 
+                        params: { model: 'openai' },
+                        timeout: 30000 
+                    }
+                );
+                if (res.data) {
+                    answer = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
+                    usedApi = 'Pollinations AI';
+                    console.log('✅ Pollinations AI responded');
+                }
+            } catch (e) {
+                console.log('❌ Pollinations AI failed:', e.message);
+            }
+        }
+        
+        // ─── NO RESPONSE ───
+        if (!answer) {
+            return reply('❌ All AI services are currently unavailable. Please try again later.');
+        }
+        
+        // ─── CLEAN RESPONSE ───
+        answer = answer.replace(/```/g, '').trim();
+        
+        // ─── TRUNCATE IF TOO LONG ───
+        if (answer.length > 4000) {
+            answer = answer.slice(0, 3950) + '...\n\n📌 *Truncated due to length*';
+        }
+        
+        // ─── SEND RESPONSE ───
+        await empire.sendMessage(m.chat, {
+            text: `🤖 *${usedApi || 'AI'}*\n\n${answer}\n\n━━━━━━━━━━━━━━━━\n💡 *Ask anything else:* ${prefix}ai <question>`,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        
+    } catch (e) {
+        console.error('AI error:', e);
+        reply(`❌ Failed to get response: ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
 // ═══════════════════════════════════════════════════
 // SETMENUIMAGE - Set menu image
 // ═══════════════════════════════════════════════════
@@ -2160,66 +2291,163 @@ case 's': {
 case 'play':
 case 'song':
 case 'ytmp3': {
-    if (!text) return reply(`🎵 Usage: ${prefix}play <song name or URL>`);
+    if (!text) return reply(`🎵 Usage: ${prefix}play <song name or URL>\nExample: ${prefix}play Khai With You`);
     await reply('🔍 Searching and processing...');
     
     try {
         // ─── GET VIDEO INFO ───
         let video;
+        let videoUrl = text;
+        let videoTitle = '';
+        let thumbnail = '';
+        
+        // Check if input is a YouTube URL
         if (text.includes('youtube.com') || text.includes('youtu.be')) {
-            video = { url: text };
             const videoId = text.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
             if (videoId) {
                 try {
                     const search = await yts({ videoId });
                     if (search) {
-                        video.title = search.title;
-                        video.thumbnail = search.thumbnail;
+                        videoTitle = search.title || 'YouTube Audio';
+                        thumbnail = search.thumbnail || '';
                     }
                 } catch (e) {}
             }
-            if (!video.title) video.title = 'YouTube Audio';
+            if (!videoTitle) videoTitle = 'YouTube Audio';
+            videoUrl = text;
         } else {
+            // Search YouTube
             const search = await yts(text);
             if (!search || !search.videos?.length) {
-                return reply('❌ No results found.');
+                return reply('❌ No results found for your query.');
             }
-            video = search.videos[0];
+            const video = search.videos[0];
+            videoUrl = video.url;
+            videoTitle = video.title || 'YouTube Audio';
+            thumbnail = video.thumbnail || '';
         }
         
         // ─── SEND THUMBNAIL ───
-        if (video.thumbnail) {
+        if (thumbnail) {
             await empire.sendMessage(m.chat, {
-                image: { url: video.thumbnail },
-                caption: `🎵 *Downloading:* ${video.title}\n⏱ *Please wait...*`
+                image: { url: thumbnail },
+                caption: `🎵 *Downloading:* ${videoTitle}\n⏱ *Please wait...*`
             }, { quoted: m });
         }
         
-        // ─── DOWNLOAD AUDIO USING API.JS ───
-        const APIs = require('./api.js');
+        // ─── DOWNLOAD AUDIO USING MULTIPLE APIS ───
         let audioData = null;
         let usedApi = '';
         
-        // Try all API methods in order
+        // API Methods
         const apiMethods = [
-            { 
-                name: 'EliteProTech', 
-                method: () => APIs.getEliteProTechDownloadByUrl(video.url) 
+            // 1. Prince Techno API (Primary)
+            {
+                name: 'Prince Techno',
+                method: async () => {
+                    const apiUrl = `https://api.princetechn.com/api/download/ytmp3?apikey=prince&url=${encodeURIComponent(videoUrl)}`;
+                    const response = await axios.get(apiUrl, { 
+                        timeout: 30000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                    });
+                    // Handle different response formats
+                    if (response.data) {
+                        // If response has download URL directly
+                        if (response.data.download_url || response.data.download) {
+                            return {
+                                download: response.data.download_url || response.data.download,
+                                title: response.data.title || videoTitle
+                            };
+                        }
+                        // If response has nested data
+                        if (response.data.data) {
+                            const data = response.data.data;
+                            return {
+                                download: data.download_url || data.download || data.url,
+                                title: data.title || videoTitle
+                            };
+                        }
+                        // If response has result object
+                        if (response.data.result) {
+                            const result = response.data.result;
+                            return {
+                                download: result.download_url || result.download || result.url,
+                                title: result.title || videoTitle
+                            };
+                        }
+                    }
+                    throw new Error('Prince API returned invalid data');
+                }
             },
-            { 
-                name: 'Yupra', 
-                method: () => APIs.getYupraDownloadByUrl(video.url) 
+            
+            // 2. EliteProTech API (Fallback)
+            {
+                name: 'EliteProTech',
+                method: async () => {
+                    const apiUrl = `https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(videoUrl)}&format=mp3`;
+                    const response = await axios.get(apiUrl, { timeout: 30000 });
+                    if (response?.data?.success && response?.data?.downloadURL) {
+                        return {
+                            download: response.data.downloadURL,
+                            title: response.data.title || videoTitle
+                        };
+                    }
+                    throw new Error('EliteProTech failed');
+                }
             },
-            { 
-                name: 'Okatsu', 
-                method: () => APIs.getOkatsuDownloadByUrl(video.url) 
+            
+            // 3. Yupra API (Fallback)
+            {
+                name: 'Yupra',
+                method: async () => {
+                    const apiUrl = `https://api.yupra.my.id/api/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`;
+                    const response = await axios.get(apiUrl, { timeout: 30000 });
+                    if (response?.data?.success && response?.data?.data?.download_url) {
+                        return {
+                            download: response.data.data.download_url,
+                            title: response.data.data.title || videoTitle
+                        };
+                    }
+                    throw new Error('Yupra failed');
+                }
             },
-            { 
-                name: 'Izumi', 
-                method: () => APIs.getIzumiDownloadByUrl(video.url) 
+            
+            // 4. Okatsu API (Fallback)
+            {
+                name: 'Okatsu',
+                method: async () => {
+                    const apiUrl = `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`;
+                    const response = await axios.get(apiUrl, { timeout: 30000 });
+                    if (response?.data?.dl) {
+                        return {
+                            download: response.data.dl,
+                            title: response.data.title || videoTitle
+                        };
+                    }
+                    throw new Error('Okatsu failed');
+                }
+            },
+            
+            // 5. Shizo API (Final Fallback)
+            {
+                name: 'Shizo',
+                method: async () => {
+                    const apiUrl = `https://api.shizo.top/downloader/ytmp3?apikey=shizo&url=${encodeURIComponent(videoUrl)}`;
+                    const response = await axios.get(apiUrl, { timeout: 30000 });
+                    if (response?.data?.status && response?.data?.result?.download) {
+                        return {
+                            download: response.data.result.download,
+                            title: response.data.result.title || videoTitle
+                        };
+                    }
+                    throw new Error('Shizo failed');
+                }
             }
         ];
         
+        // Try each API method
         for (const apiMethod of apiMethods) {
             try {
                 console.log(`🔄 Trying ${apiMethod.name}...`);
@@ -2236,7 +2464,7 @@ case 'ytmp3': {
         }
         
         if (!audioData || !audioData.download) {
-            return reply('❌ All download sources failed. Please try another song.');
+            return reply('❌ All download sources failed. Please try another song or try again later.');
         }
         
         // ─── DOWNLOAD AUDIO FILE ───
@@ -2249,9 +2477,7 @@ case 'ytmp3': {
             maxBodyLength: Infinity,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': '*/*',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive'
+                'Accept': '*/*'
             }
         });
         
@@ -2264,52 +2490,32 @@ case 'ytmp3': {
         
         console.log(`📊 Audio size: ${(audioBuffer.length / 1024).toFixed(1)} KB`);
         
-        // ─── CONVERT TO WHATSAPP COMPATIBLE FORMAT ───
-        try {
-            const { toWhatsAppAudio } = require('./lib/converter.js');
-            
-            // Detect format
-            let format = 'm4a';
-            const header = audioBuffer.toString('ascii', 0, 4);
-            if (header === 'OggS') format = 'ogg';
-            else if (header === 'RIFF') format = 'wav';
-            else if (header === 'ftyp') format = 'mp4';
-            else if (audioBuffer.toString('ascii', 0, 3) === 'ID3') format = 'mp3';
-            else if (audioBuffer[0] === 0xFF && (audioBuffer[1] & 0xE0) === 0xE0) format = 'mp3';
-            
-            console.log(`🔄 Converting audio (${format} → MP3)...`);
-            
-            const convertedBuffer = await toWhatsAppAudio(audioBuffer, format);
-            if (convertedBuffer && convertedBuffer.length > 1000) {
-                audioBuffer = convertedBuffer;
-                console.log(`✅ Conversion successful! Size: ${(audioBuffer.length / 1024).toFixed(1)} KB`);
-            }
-        } catch (convErr) {
-            console.log('⚠️ Conversion error:', convErr.message);
-            
-            // ─── FALLBACK: Try basic FFmpeg ───
-            try {
-                const { toAudio } = require('./lib/converter.js');
-                const converted = await toAudio(audioBuffer, 'mp4');
-                if (converted && converted.length > 1000) {
-                    audioBuffer = converted;
-                    console.log('✅ Fallback conversion succeeded!');
-                }
-            } catch (e) {
-                console.log('❌ Fallback conversion failed:', e.message);
-            }
-        }
-        
-        // ─── FINAL CHECK ───
+        // ─── CONVERT TO MP3 IF NEEDED ───
         const isMP3 = audioBuffer.toString('ascii', 0, 3) === 'ID3' || 
                      (audioBuffer[0] === 0xFF && (audioBuffer[1] & 0xE0) === 0xE0);
         
         if (!isMP3) {
-            console.log('⚠️ Audio may not be MP3 format, but attempting to send...');
+            try {
+                console.log('🔄 Converting audio format...');
+                const { toAudio } = require('./lib/converter.js');
+                let format = 'm4a';
+                const header = audioBuffer.toString('ascii', 0, 4);
+                if (header === 'OggS') format = 'ogg';
+                else if (header === 'RIFF') format = 'wav';
+                else if (header === 'ftyp') format = 'mp4';
+                
+                const converted = await toAudio(audioBuffer, format);
+                if (converted && converted.length > 1000) {
+                    audioBuffer = converted;
+                    console.log('✅ Audio converted successfully');
+                }
+            } catch (convErr) {
+                console.log('⚠️ Conversion error, sending original:', convErr.message);
+            }
         }
         
         // ─── SEND AUDIO ───
-        const title = (audioData.title || video.title || 'audio').replace(/[^\w\s-]/g, '');
+        const title = (audioData.title || videoTitle || 'audio').replace(/[^\w\s-]/g, '');
         
         try {
             await empire.sendMessage(m.chat, {
@@ -2325,7 +2531,7 @@ case 'ytmp3': {
         } catch (sendErr) {
             console.error('Send error:', sendErr);
             
-            // ─── ALTERNATIVE: Try sending as voice note ───
+            // ─── FALLBACK: Send as voice note ───
             try {
                 await empire.sendMessage(m.chat, {
                     audio: audioBuffer,
@@ -2334,23 +2540,17 @@ case 'ytmp3': {
                     fileName: `${title}.ogg`,
                     contextInfo: newsletterContext()
                 }, { quoted: m });
-                
                 console.log(`✅ Sent as voice note: ${title}`);
             } catch (pttErr) {
                 // ─── FINAL FALLBACK: Send as document ───
-                try {
-                    await empire.sendMessage(m.chat, {
-                        document: audioBuffer,
-                        mimetype: 'audio/mpeg',
-                        fileName: `${title}.mp3`,
-                        caption: `🎵 *${title}*\n\n⚠️ Audio sent as document due to playback issues.`,
-                        contextInfo: newsletterContext()
-                    }, { quoted: m });
-                    
-                    console.log(`✅ Sent as document: ${title}`);
-                } catch (docErr) {
-                    throw new Error(`Failed to send audio: ${docErr.message}`);
-                }
+                await empire.sendMessage(m.chat, {
+                    document: audioBuffer,
+                    mimetype: 'audio/mpeg',
+                    fileName: `${title}.mp3`,
+                    caption: `🎵 *${title}*\n\n⚠️ Audio sent as document due to playback issues.`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+                console.log(`✅ Sent as document: ${title}`);
             }
         }
         
@@ -2360,114 +2560,68 @@ case 'ytmp3': {
     }
     break;
 }
-      case 'ai':
-      case 'ask':
-      case 'chat':
-      case 'gemini': {
-    if (!text) return reply(`🤖 Usage: ${prefix}ai <question>\nExample: ${prefix}ai What is life?`);
-    await reply('🤔 Thinking...');
+      // ═══════════════════════════════════════════════════
+// DEEPSEEK AI COMMAND - Prince Techno API
+// ═══════════════════════════════════════════════════
+case 'deepseek':
+case 'ds':
+case 'deep': {
+    if (!text) return reply(`🧠 Usage: ${prefix}deepseek <question>\nExample: ${prefix}deepseek What is love?`);
+    await reply('🧠 *Thinking with DeepSeek...*');
     try {
-        let answer = null;
-        let usedApi = '';
-        
-        // ─── TRY 1: GEMINI API ───
-        if (GoogleGenerativeAI && GEMINI_API_KEY) {
-            try {
-                const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-                const models = ['gemini-1.5-flash', 'gemini-pro', 'gemini-1.5-pro'];
-                for (const modelName of models) {
-                    try {
-                        const model = genAI.getGenerativeModel({ model: modelName });
-                        const result = await model.generateContent(text);
-                        answer = result.response.text();
-                        usedApi = `Gemini (${modelName})`;
-                        console.log(`✅ Gemini ${modelName} responded`);
-                        break;
-                    } catch (e) {
-                        console.log(`❌ Gemini ${modelName} failed:`, e.message);
-                    }
-                }
-            } catch (e) {
-                console.log('❌ Gemini API error:', e.message);
+        const apiUrl = `https://api.princetechn.com/api/ai/deepseek-v3?apikey=prince&q=${encodeURIComponent(text)}`;
+        const response = await axios.get(apiUrl, { 
+            timeout: 30000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
-        }
+        });
         
-        // ─── TRY 2: SHIZO API ───
-        if (!answer) {
-            try {
-                const res = await axios.get(
-                    `https://api.shizo.top/ai/gpt?apikey=shizo&query=${encodeURIComponent(text)}`,
-                    { timeout: 30000 }
-                );
-                if (res.data?.status && res.data?.result) {
-                    answer = res.data.result;
-                    usedApi = 'Shizo GPT';
-                    console.log('✅ Shizo API responded');
-                }
-            } catch (e) {
-                console.log('❌ Shizo API failed:', e.message);
+        if (response.data?.success && response.data?.result) {
+            let answer = response.data.result;
+            
+            // ─── CLEAN RESPONSE ───
+            answer = answer.replace(/```/g, '').trim();
+            
+            // ─── TRUNCATE IF TOO LONG ───
+            if (answer.length > 4000) {
+                answer = answer.slice(0, 3950) + '...\n\n📌 *Truncated due to length*';
             }
+            
+            // ─── SEND RESPONSE ───
+            await empire.sendMessage(m.chat, {
+                text: `🧠 *DeepSeek AI*\n\n${answer}\n\n━━━━━━━━━━━━━━━━\n💡 *Ask anything else:* ${prefix}deepseek <question>`,
+                contextInfo: newsletterContext()
+            }, { quoted: m });
+            
+        } else {
+            throw new Error('Invalid response from DeepSeek API');
         }
-        
-        // ─── TRY 3: SIPUTZX AI API ───
-        if (!answer) {
-            try {
-                const res = await axios.get(
-                    `https://api.siputzx.my.id/api/ai/gpt?query=${encodeURIComponent(text)}`,
-                    { timeout: 30000 }
-                );
-                if (res.data?.status && res.data?.data?.message) {
-                    answer = res.data.data.message;
-                    usedApi = 'Siputzx AI';
-                    console.log('✅ Siputzx AI responded');
-                }
-            } catch (e) {
-                console.log('❌ Siputzx AI failed:', e.message);
-            }
-        }
-        
-        // ─── TRY 4: POLLINATIONS AI (FALLBACK) ───
-        if (!answer) {
-            try {
-                const res = await axios.get(
-                    `https://text.pollinations.ai/${encodeURIComponent(text)}`,
-                    { 
-                        params: { model: 'openai' },
-                        timeout: 30000 
-                    }
-                );
-                if (res.data) {
-                    answer = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
-                    usedApi = 'Pollinations AI';
-                    console.log('✅ Pollinations AI responded');
-                }
-            } catch (e) {
-                console.log('❌ Pollinations AI failed:', e.message);
-            }
-        }
-        
-        // ─── NO RESPONSE ───
-        if (!answer) {
-            return reply('❌ All AI services are currently unavailable. Please try again later.');
-        }
-        
-        // ─── CLEAN RESPONSE ───
-        answer = answer.replace(/```/g, '').trim();
-        
-        // ─── TRUNCATE IF TOO LONG ───
-        if (answer.length > 4000) {
-            answer = answer.slice(0, 3950) + '...\n\n📌 *Truncated due to length*';
-        }
-        
-        // ─── SEND RESPONSE ───
-        await empire.sendMessage(m.chat, {
-            text: `🤖 *${usedApi || 'AI'}*\n\n${answer}\n\n━━━━━━━━━━━━━━━━\n💡 *Ask anything else:* ${prefix}ai <question>`,
-            contextInfo: newsletterContext()
-        }, { quoted: m });
         
     } catch (e) {
-        console.error('AI error:', e);
-        reply(`❌ Failed to get response: ${e.message || 'Unknown error'}`);
+        console.error('DeepSeek error:', e);
+        
+        // ─── FALLBACK: Use Gemini API ───
+        try {
+            await reply('🔄 *DeepSeek unavailable, trying Gemini...*');
+            const geminiUrl = `https://api.princetechn.com/api/ai/geminiai?apikey=prince&q=${encodeURIComponent(text)}`;
+            const geminiResponse = await axios.get(geminiUrl, { timeout: 30000 });
+            
+            if (geminiResponse.data?.success && geminiResponse.data?.result) {
+                let answer = geminiResponse.data.result;
+                if (answer.length > 4000) {
+                    answer = answer.slice(0, 3950) + '...\n\n📌 *Truncated*';
+                }
+                await empire.sendMessage(m.chat, {
+                    text: `🤖 *Gemini AI (Fallback)*\n\n${answer}\n\n━━━━━━━━━━━━━━━━\n💡 *Ask anything else:* ${prefix}deepseek <question>`,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+            } else {
+                throw new Error('Gemini fallback failed');
+            }
+        } catch (fallbackErr) {
+            reply(`❌ *Failed to get response:* ${e.message || 'Unknown error'}`);
+        }
     }
     break;
 }

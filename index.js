@@ -9,11 +9,10 @@ const AUTH_FILE = './auth.json';
 // ========================
 // RAILWAY HEALTH SERVER
 // ========================
+// Railway requires an HTTP service to bind to PORT within 60 seconds or
+// it marks the deploy as unhealthy. This tiny Express server satisfies that.
 const PORT = process.env.PORT || 3000;
 const healthApp = express();
-
-healthApp.use(express.json());
-healthApp.use(express.static(path.join(__dirname, 'public')));
 
 healthApp.get('/health', (_, res) => res.status(200).json({
     status: 'ok',
@@ -21,96 +20,23 @@ healthApp.get('/health', (_, res) => res.status(200).json({
     uptime: process.uptime().toFixed(0) + 's'
 }));
 
-healthApp.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'pair.html')));
-
-// ========================
-// WEB PAIRING API
-// ========================
-const pairingInFlight = new Set();
-
-healthApp.post('/api/pair', async (req, res) => {
-    const raw = (req.body && req.body.number) || '';
-    const number = String(raw).replace(/[^0-9]/g, '');
-
-    if (!number || number.length < 8) {
-        return res.status(400).json({ error: 'Provide a valid phone number with country code.' });
-    }
-
-    const pairingJsonPath = path.join(__dirname, 'empirestore', 'pairing', 'pairing.json');
-    const sessionCredsPath = path.join(__dirname, 'empirestore', 'pairing', number, 'creds.json');
-
-    try {
-        if (fs.existsSync(sessionCredsPath)) {
-            const creds = JSON.parse(fs.readFileSync(sessionCredsPath, 'utf8'));
-            if (creds && creds.registered) {
-                return res.status(200).json({ alreadyPaired: true });
-            }
-        }
-
-        if (!pairingInFlight.has(number)) {
-            pairingInFlight.add(number);
-            const startpairing = require('./pair');
-            startpairing(number).catch((err) => {
-                console.log(chalk.red(`❌ Web pairing error for ${number}:`), err.message);
-            }).finally(() => pairingInFlight.delete(number));
-        }
-
-        const deadline = Date.now() + 20000;
-        let lastCode = null;
-        while (Date.now() < deadline) {
-            await new Promise((r) => setTimeout(r, 1000));
-            if (fs.existsSync(pairingJsonPath)) {
-                try {
-                    const raw = fs.readFileSync(pairingJsonPath, 'utf8');
-                    if (raw.trim().length === 0) continue; // ← FIX: skip empty file
-                    const data = JSON.parse(raw);
-                    if (data && data.number === number && data.code) {
-                        lastCode = data.code;
-                        break;
-                    }
-                } catch (e) {
-                    // file is malformed – skip this iteration
-                    continue;
-                }
-            }
-        }
-
-        if (!lastCode) {
-            return res.status(504).json({ error: 'Timed out waiting for a pairing code. Try again.' });
-        }
-
-        return res.status(200).json({ code: lastCode });
-    } catch (error) {
-        console.log(chalk.red('❌ /api/pair error:'), error.message);
-        return res.status(500).json({ error: 'Server error generating pairing code.' });
-    }
-});
-
-healthApp.get('/api/status/:number', (req, res) => {
-    const number = String(req.params.number).replace(/[^0-9]/g, '');
-    const sessionCredsPath = path.join(__dirname, 'empirestore', 'pairing', number, 'creds.json');
-    if (!fs.existsSync(sessionCredsPath)) {
-        return res.status(200).json({ paired: false });
-    }
-    try {
-        const creds = JSON.parse(fs.readFileSync(sessionCredsPath, 'utf8'));
-        return res.status(200).json({ paired: !!(creds && creds.registered) });
-    } catch {
-        return res.status(200).json({ paired: false });
-    }
-});
+healthApp.get('/', (_, res) => res.status(200).send('⚡ ZUKO XMD is running'));
 
 healthApp.listen(PORT, () => {
-    console.log(chalk.green(`✅ Web server listening on port ${PORT} (pairing UI at /)`));
+    console.log(chalk.green(`✅ Health server listening on port ${PORT}`));
 });
 
 // ========================
 // HELPERS
 // ========================
 function ensureAuthenticated() {
+    // Always mark authenticated so non-interactive (Railway) deploys work
     fs.writeFileSync(AUTH_FILE, JSON.stringify({ authenticated: true }));
 }
 
+// ========================
+// LAUNCH BOT MODULES
+// ========================
 function launchBot() {
     console.clear();
     console.log(chalk.green('Starting ZUKO XMD...\n'));
@@ -184,6 +110,9 @@ function launchBot() {
     };
 }
 
+// ========================
+// INITIALIZE
+// ========================
 const initializeBot = async () => {
     console.clear();
     try {
@@ -203,9 +132,14 @@ const initializeBot = async () => {
     ensureAuthenticated();
     console.log(chalk.green('✅ Auto-authenticated for server deployment.'));
 
+    // NOTE: autoLoadPairs is handled inside bot.js (8 seconds after startup).
+    // Calling it here too would double-connect all paired users — so we skip it.
     launchBot();
 };
 
+// ========================
+// GRACEFUL SHUTDOWN
+// ========================
 process.once('SIGINT', () => {
     console.log(chalk.yellow('\n\n⚠️  Shutting down gracefully...'));
     process.exit(0);
