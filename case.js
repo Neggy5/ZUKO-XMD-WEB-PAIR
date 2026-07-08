@@ -720,142 +720,115 @@ case 'help': {
   ✦ Mode       : ${db.botMode?.mode || 'public'}
 
 ◈────────────────────────◈
-◇ 𝗚𝗘𝗡𝗘𝗥𝗔𝗟 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦
+◇ COMMANDS
 ◈────────────────────────◈
 
-  ✦ ${prefix}ping           ⋮ Latency check
-  ✦ ${prefix}menu           ⋮ This menu
-  ✦ ${prefix}owner          ⋮ Contact owner
-  ✦ ${prefix}mode           ⋮ Public/Private mode
-  ✦ ${prefix}mode add @user ⋮ Whitelist user
-  ✦ ${prefix}mode remove @user ⋮ Remove from whitelist
+  ✦ ${prefix}ping           
+  ✦ ${prefix}menu           
+  ✦ ${prefix}sticker        
+  ✦ ${prefix}deepseek <question>  
+  ✦ ${prefix}ds <question>       
+  ✦ ${prefix}play <song>    
+  ✦ ${prefix}ai <question>  
+  ✦ ${prefix}runtime    
+  ✦ ${prefix}uptime        
+  ✦ ${prefix}imagine <prompt>  
+  ✦ ${prefix}img <prompt>      
+  ✦ ${prefix}flux <prompt>     
+  ✦ ${prefix}tts <text>     
+  ✦ ${prefix}translate      
+  ✦ ${prefix}tiktok <url>      
+  ✦ ${prefix}toimage        
+  ✦ ${prefix}getpp @user    
+  ✦ ${prefix}apkdl <app>    
+  ✦ ${prefix}apk <app>      
+  ✦ ${prefix}setpp          
+  ✦ ${prefix}toaudio        
+  ✦ ${prefix}togif          
+  ✦ ${prefix}toptt          
 
 ◈────────────────────────◈
-◇ 𝗔𝗜 & 𝗠𝗘𝗗𝗜𝗔
+◇ FOOTBALL LIVESCORES 
 ◈────────────────────────◈
 
-  ✦ ${prefix}ai <question>  ⋮ AI chat (Gemini)
-  ✦ ${prefix}deepseek <question> ⋮ DeepSeek AI
-  ✦ ${prefix}ds <question>  ⋮ DeepSeek AI (shortcut)
-  ✦ ${prefix}imagine <prompt> ⋮ Generate AI image
-  ✦ ${prefix}img <prompt>   ⋮ Generate image (shortcut)
-  ✦ ${prefix}flux <prompt>  ⋮ Generate with Flux
-  ✦ ${prefix}tts <text>     ⋮ Text to speech
-  ✦ ${prefix}translate      ⋮ Translate text
+✦ ${prefix}football        
+✦ ${prefix}football live  
+✦ ${prefix}football today 
+✦ ${prefix}football search <team> 
+✦ ${prefix}football stats 
 
 ◈────────────────────────◈
-◇ 𝗠𝗨𝗦𝗜𝗖 & 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗦
+◇ PROTECTIONS
 ◈────────────────────────◈
 
-  ✦ ${prefix}play <song>    ⋮ Download audio
-  ✦ ${prefix}ytvideo <url>  ⋮ Download YouTube video
-  ✦ ${prefix}ytmp4 <url>    ⋮ Download YouTube video
-  ✦ ${prefix}tiktok <url>   ⋮ Download TikTok
-  ✦ ${prefix}ttsearch <query> ⋮ Search TikTok
-  ✦ ${prefix}tts <query>    ⋮ Search TikTok (shortcut)
-  ✦ ${prefix}fb <url>       ⋮ Download Facebook
-  ✦ ${prefix}ig <url>       ⋮ Download Instagram
-  ✦ ${prefix}tw <url>       ⋮ Download Twitter/X
-  ✦ ${prefix}snap <url>     ⋮ Download Snapchat
-  ✦ ${prefix}aiodl <url>    ⋮ Universal downloader
-  ✦ ${prefix}lyrics <song>  ⋮ Search song lyrics
-  ✦ ${prefix}apkdl <app>    ⋮ Download APK
+  ✦ ${prefix}antilink       
+  ✦ ${prefix}antisticker    
+  ✦ ${prefix}antitag        
+  ✦ ${prefix}antiviewonce   
+  ✦ ${prefix}anticall       
+  ✦ ${prefix}antidelete     
+  ✦ ${prefix}antibot        
 
 ◈────────────────────────◈
-◇ 𝗦𝗧𝗜𝗖𝗞𝗘𝗥 & 𝗜𝗠𝗔𝗚𝗘 𝗧𝗢𝗢𝗟𝗦
+◇ GROUP MANAGEMENT 
 ◈────────────────────────◈
 
-  ✦ ${prefix}sticker        ⋮ Img/vid → sticker
-  ✦ ${prefix}toimage        ⋮ Sticker → image
-  ✦ ${prefix}toaudio        ⋮ Video → audio
-  ✦ ${prefix}togif          ⋮ Video/sticker → GIF
-  ✦ ${prefix}toptt          ⋮ Video/audio → voice note
-  ✦ ${prefix}getpp @user    ⋮ Get profile picture
-  ✦ ${prefix}setpp          ⋮ Set bot PP (Owner)
-  ✦ ${prefix}tgsticker <url> ⋮ Download Telegram sticker
-  ✦ ${prefix}tgs <url>      ⋮ Download Telegram sticker
+  ✦ ${prefix}tagall <msg>   
+  ✦ ${prefix}groupinfo      
+  ✦ ${prefix}promote @user  
+  ✦ ${prefix}demote @user   
+  ✦ ${prefix}kick @user     
+  ✦ ${prefix}jail @user     
+  ✦ ${prefix}unjail @user   
+  ✦ ${prefix}welcome        
+  ✦ ${prefix}setgcname <name>  
+  ✦ ${prefix}gcdescription <desc> 
+  ✦ ${prefix}resetlink       
+  ✦ ${prefix}setmenuimage     
+  ✦ ${prefix}setbotname <name> 
+  ✦ ${prefix}goodbye        
 
 ◈────────────────────────◈
-◇ 𝗙𝗢𝗢𝗧𝗕𝗔𝗟𝗟 𝗟𝗜𝗩𝗘𝗦𝗖𝗢𝗥𝗘𝗦
+◇ MISC
 ◈────────────────────────◈
-
-  ✦ ${prefix}football       ⋮ All matches
-  ✦ ${prefix}football live  ⋮ Live matches only
-  ✦ ${prefix}football today ⋮ Today's matches
-  ✦ ${prefix}football search <team> ⋮ Search team
-  ✦ ${prefix}football stats ⋮ Match statistics
-
-◈────────────────────────◈
-◇ 𝗚𝗜𝗙 𝗥𝗘𝗔𝗖𝗧𝗜𝗢𝗡𝗦
-◈────────────────────────◈
-
-  ✦ ${prefix}gif <category> ⋮ Reaction GIF
-  ✦ ${prefix}hug @user      ⋮ Hug someone 🤗
-  ✦ ${prefix}kiss @user     ⋮ Kiss someone 😘
-  ✦ ${prefix}slap @user     ⋮ Slap someone 👋
-  ✦ ${prefix}punch @user    ⋮ Punch someone 👊
-  ✦ ${prefix}kick @user     ⋮ Kick someone 🦵
-  ✦ ${prefix}cuddle @user   ⋮ Cuddle someone 🫂
-  ✦ ${prefix}pat @user      ⋮ Pat someone 🫳
-  ✦ ${prefix}poke @user     ⋮ Poke someone 👉
-  ✦ ${prefix}blush          ⋮ Blush 😳
-  ✦ ${prefix}cry            ⋮ Cry 😭
-  ✦ ${prefix}happy          ⋮ Happy 😊
-  ✦ ${prefix}dance          ⋮ Dance 💃
-  ✦ ${prefix}smile          ⋮ Smile 😊
-  ✦ ${prefix}laugh          ⋮ Laugh 😂
-  ✦ ${prefix}wave @user     ⋮ Wave 👋
-  ✦ ${prefix}wink @user     ⋮ Wink 😉
-  ✦ ${prefix}yeet           ⋮ Yeet 🚀
-  ✦ ${prefix}bonk @user     ⋮ Bonk 🔨
-  ✦ ${prefix}love @user     ⋮ Love ❤️
-  ✦ ${prefix}angry @user    ⋮ Angry 😡
-  ✦ ${prefix}think          ⋮ Think 🤔
-  ✦ ${prefix}cool           ⋮ Cool 😎
-  ✦ ${prefix}celebrate      ⋮ Celebrate 🎉
-
-◈────────────────────────◈
-◇ 𝗣𝗥𝗢𝗧𝗘𝗖𝗧𝗜𝗢𝗡𝗦
-◈────────────────────────◈
-
-  ✦ ${prefix}antilink       ⋮ Block links
-  ✦ ${prefix}antisticker    ⋮ Block stickers
-  ✦ ${prefix}antitag        ⋮ Block tagging
-  ✦ ${prefix}antiviewonce   ⋮ Reveal view-once
-  ✦ ${prefix}anticall       ⋮ Reject calls
-  ✦ ${prefix}antidelete     ⋮ Log deletions
-  ✦ ${prefix}antibot        ⋮ Auto-kick bots
-
-◈────────────────────────◈
-◇ 𝗚𝗥𝗢𝗨𝗣 𝗠𝗔𝗡𝗔𝗚𝗘𝗠𝗘𝗡𝗧
-◈────────────────────────◈
-
-  ✦ ${prefix}tagall <msg>   ⋮ Tag everyone
-  ✦ ${prefix}groupinfo      ⋮ Group details
-  ✦ ${prefix}promote @user  ⋮ Make admin
-  ✦ ${prefix}demote @user   ⋮ Remove admin
-  ✦ ${prefix}kick @user     ⋮ Remove member
-  ✦ ${prefix}jail @user     ⋮ Restrict user
-  ✦ ${prefix}unjail @user   ⋮ Release user
-  ✦ ${prefix}welcome        ⋮ Toggle welcome
-  ✦ ${prefix}goodbye        ⋮ Toggle goodbye
-  ✦ ${prefix}setgcname <name> ⋮ Set group name
-  ✦ ${prefix}gcdescription <desc> ⋮ Set description
-  ✦ ${prefix}resetlink      ⋮ Reset invite link
-
-◈────────────────────────◈
-◇ 𝗠𝗜𝗦𝗖
-◈────────────────────────◈
-
-  ✦ ${prefix}balance        ⋮ Check coins
-  ✦ ${prefix}viewonce       ⋮ Reveal view-once (Owner)
-  ✦ ${prefix}autoreact      ⋮ Toggle auto-react
-  ✦ ${prefix}savestatus     ⋮ Save status (Owner)
-  ✦ ${prefix}save           ⋮ Save status (shortcut)
-  ✦ ${prefix}idch <link>    ⋮ Get channel ID
-  ✦ ${prefix}setmenuimage   ⋮ Set menu banner (Owner)
-  ✦ ${prefix}setbotname <name> ⋮ Set bot name (Owner)
-
+  ✦ ${prefix}mode           
+  ✦ ${prefix}mode add @user
+  ✦ ${prefix}mode remove @user 
+  ✦ ${prefix}balance        
+  ✦ ${prefix}owner 
+  ✦ ${prefix}viewonce           
+  ✦ ${prefix}autoreact     
+  ✦ ${prefix}idch <link>
+  ✦ ${prefix}savestatus
+  ✦ ${prefix}fb <url>      
+  ✦ ${prefix}ig <url>      
+  ✦ ${prefix}tw <url>       
+  ✦ ${prefix}snap <url>    
+  ✦ ${prefix}gif <category>  
+  ✦ ${prefix}hug @user       
+  ✦ ${prefix}kiss @user      
+  ✦ ${prefix}slap @user      
+  ✦ ${prefix}punch @user     
+  ✦ ${prefix}kick @user      
+  ✦ ${prefix}cuddle @user    
+  ✦ ${prefix}pat @user       
+  ✦ ${prefix}poke @user      
+  ✦ ${prefix}blush           
+  ✦ ${prefix}cry             
+  ✦ ${prefix}happy          
+  ✦ ${prefix}dance           
+  ✦ ${prefix}smile           
+  ✦ ${prefix}laugh           
+  ✦ ${prefix}wave @user      
+  ✦ ${prefix}wink @user      
+  ✦ ${prefix}yeet            
+  ✦ ${prefix}bonk @user      
+  ✦ ${prefix}love @user     
+  ✦ ${prefix}angry @user     
+  ✦ ${prefix}think           
+  ✦ ${prefix}cool            
+  ✦ ${prefix}celebrate       
+  
 ◈─────────────────────────────◈
     💎  ZUKO XMD  🥷 DEV ZUKO
 ◈─────────────────────────────◈
@@ -3707,6 +3680,94 @@ Example: ${prefix}setbotname My Awesome Bot
         
     } catch (e) {
         reply(`❌ Failed to set bot name: ${e.message || 'Unknown error'}`);
+    }
+    break;
+}
+// ═══════════════════════════════════════════════════
+// RUNTIME / UPTIME COMMAND
+// ═══════════════════════════════════════════════════
+case 'runtime':
+case 'uptime':
+case 'alive':
+case 'status': {
+    const up = process.uptime();
+    const d = Math.floor(up / 86400);
+    const h = Math.floor((up % 86400) / 3600);
+    const min = Math.floor((up % 3600) / 60);
+    const sec = Math.floor(up % 60);
+    const mem = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
+    const memTotal = (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(1);
+    const cpuUsage = process.cpuUsage();
+    const cpuPercent = ((cpuUsage.user + cpuUsage.system) / 1000000).toFixed(1);
+    
+    // ─── Get Bot Info ───
+    const botName = global.botName || 'ZUKO XMD';
+    const mode = db.botMode?.mode || 'public';
+    const owner = global.OWNER_NAME || 'ZUKO';
+    const nodeVersion = process.version;
+    const platform = process.platform;
+    
+    // ─── Build Response ───
+    const response = 
+`⚡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚡
+        ✦  BOT STATUS  ✦
+⚡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚡
+
+🤖 *Bot:* ${botName}
+👑 *Owner:* ${owner}
+📊 *Mode:* ${mode.toUpperCase()}
+
+⏱️ *Uptime:*
+  📅 ${d} days
+  🕐 ${h} hours
+  ⏱️ ${min} minutes
+  ⏲️ ${sec} seconds
+
+💾 *Memory:*
+  🧠 Used: ${mem} MB
+  📦 Total: ${memTotal} MB
+  🔥 CPU: ${cpuPercent}s
+
+🖥️ *System:*
+  📦 Node: ${nodeVersion}
+  💻 OS: ${platform}
+
+⚡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⚡
+💡 *Bot is ONLINE ✅*`;
+
+    try {
+        // ─── Try sending with image ───
+        if (global.menuImage) {
+            let imageBuffer;
+            if (Buffer.isBuffer(global.menuImage)) {
+                imageBuffer = global.menuImage;
+            } else if (typeof global.menuImage === 'string' && fs.existsSync(global.menuImage)) {
+                imageBuffer = fs.readFileSync(global.menuImage);
+            }
+            
+            if (imageBuffer) {
+                await empire.sendMessage(m.chat, {
+                    image: imageBuffer,
+                    caption: response,
+                    contextInfo: newsletterContext()
+                }, { quoted: m });
+                break;
+            }
+        }
+        
+        // ─── Fallback: Text only ───
+        await empire.sendMessage(m.chat, {
+            text: response,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
+        
+    } catch (e) {
+        console.error('Runtime send error:', e);
+        // ─── Final fallback ───
+        await empire.sendMessage(m.chat, {
+            text: response,
+            contextInfo: newsletterContext()
+        }, { quoted: m });
     }
     break;
 }
