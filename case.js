@@ -2358,16 +2358,14 @@ case 'ytv': {
     
     // ─── PARSE URL AND QUALITY ───
     let url = text.trim();
-    let quality = '720'; // Default quality
+    let quality = '720';
     
-    // Check if quality is specified
     const qualityMatch = url.match(/\b(720|1080|480|360)\b/);
     if (qualityMatch) {
         quality = qualityMatch[1];
         url = url.replace(qualityMatch[0], '').trim();
     }
     
-    // Check if URL is valid
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
         return reply('❌ Please provide a valid YouTube URL.');
     }
@@ -2375,7 +2373,6 @@ case 'ytv': {
     await reply(`📥 *Processing YouTube video...* Quality: ${quality}p`);
     
     try {
-        // ─── CALL PRINCE TECHNO YT VIDEO API ───
         const apiUrl = `https://api.princetechn.com/api/download/ytvideo?apikey=prince&quality=${quality}&url=${encodeURIComponent(url)}`;
         const response = await axios.get(apiUrl, { 
             timeout: 60000,
@@ -2399,7 +2396,6 @@ case 'ytv': {
             return reply('❌ No download URL found. Try a different quality or video.');
         }
         
-        // ─── SEND THUMBNAIL WITH INFO ───
         if (thumbnail) {
             try {
                 await empire.sendMessage(m.chat, {
@@ -2410,7 +2406,6 @@ case 'ytv': {
             } catch (e) {}
         }
         
-        // ─── DOWNLOAD VIDEO ───
         await reply(`⏳ *Downloading ${title}...*`);
         
         const videoResponse = await axios.get(videoUrl, {
@@ -2430,9 +2425,49 @@ case 'ytv': {
             return reply('❌ Failed to download video. The file may be corrupted.');
         }
         
+        // ─── CONVERT VIDEO TO WHATSAPP COMPATIBLE FORMAT ───
+        try {
+            await reply('🔄 *Converting video for WhatsApp...*');
+            
+            const { exec } = require('child_process');
+            const tmpDir = path.join(process.cwd(), 'tmp');
+            if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+            
+            const inputPath = path.join(tmpDir, `yt_${Date.now()}_input.mp4`);
+            const outputPath = path.join(tmpDir, `yt_${Date.now()}_output.mp4`);
+            
+            fs.writeFileSync(inputPath, videoBuffer);
+            
+            // Convert with FFmpeg - proper WhatsApp format
+            await new Promise((resolve, reject) => {
+                const cmd = `ffmpeg -i "${inputPath}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -movflags +faststart -pix_fmt yuv420p -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" "${outputPath}"`;
+                console.log('🔄 Running FFmpeg:', cmd);
+                exec(cmd, { timeout: 120000 }, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error('FFmpeg error:', stderr);
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+            
+            if (fs.existsSync(outputPath)) {
+                videoBuffer = fs.readFileSync(outputPath);
+                console.log(`✅ Video converted: ${(videoBuffer.length / 1024 / 1024).toFixed(1)} MB`);
+            }
+            
+            // Cleanup temp files
+            try { fs.unlinkSync(inputPath); } catch {}
+            try { fs.unlinkSync(outputPath); } catch {}
+            
+        } catch (convErr) {
+            console.error('Conversion error:', convErr);
+            await reply('⚠️ *Conversion failed, trying to send original...*');
+        }
+        
         const fileSizeMB = (videoBuffer.length / 1024 / 1024).toFixed(1);
         
-        // ─── BUILD CAPTION ───
         let caption = 
 `🎬━━━━━━━━━━━━━━━━━━━━━━━━━━━━━🎬
         ✦  YOUTUBE VIDEO  ✦
@@ -2486,13 +2521,10 @@ case 'ytv': {
     } catch (e) {
         console.error('YouTube video download error:', e);
         
-        // ─── HANDLE SPECIFIC ERRORS ───
         if (e.code === 'ECONNABORTED') {
             reply(`❌ *Download timed out.* The video may be too large. Try a lower quality.`);
         } else if (e.response?.status === 404) {
             reply(`❌ *Video not found.* The video may have been deleted or is private.`);
-        } else if (e.message?.includes('quality')) {
-            reply(`❌ *Quality not available.* Try 720p or 1080p.`);
         } else {
             reply(`❌ *Failed to download:* ${e.message || 'Unknown error'}`);
         }
