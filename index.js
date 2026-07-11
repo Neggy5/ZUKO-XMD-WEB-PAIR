@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
-const figlet = require('figlet');
+let figlet;
+try {
+    figlet = require('figlet');
+} catch (e) {
+    console.error('⚠️  figlet failed to load, continuing without ASCII banner:', e.message);
+    figlet = { textSync: () => { throw new Error('figlet unavailable'); } };
+}
 const express = require('express');
 
 const startpairing = require('./pair');

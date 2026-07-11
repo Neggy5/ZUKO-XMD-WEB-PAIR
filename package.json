@@ -7,7 +7,6 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "bot": "node bot.js",
-    "web": "node backend.js",
     "test": "node --check index.js"
   },
   "keywords": [
@@ -52,7 +51,7 @@
     "express": "^4.18.2",
     "fake-useragent": "^1.0.1",
     "ffmpeg-static": "^5.2.0",
-    "figlet": "^1.7.0",
+    "figlet": "1.7.0",
     "file-type": "^16.5.4",
     "fluent-ffmpeg": "^2.1.3",
     "form-data": "^4.0.0",
